@@ -15,24 +15,15 @@ const swaggerOptions: swaggerUi.SwaggerUiOptions = {
     filter: true,
     showRequestDuration: true,
     tryItOutEnabled: true,
-    requestInterceptor: (req: any) => {
-      // Add request logging for Swagger UI requests
-      Logger.debug('Swagger UI API Request', {
-        method: req.method,
-        url: req.url,
-        headers: req.headers,
-      });
-      return req;
-    },
-    responseInterceptor: (res: any) => {
-      // Add response logging for Swagger UI requests
-      Logger.debug('Swagger UI API Response', {
-        status: res.status,
-        statusText: res.statusText,
-        url: res.url,
-      });
-      return res;
-    },
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    defaultModelsExpandDepth: 2,
+    defaultModelExpandDepth: 2,
+    operationsSorter: 'alpha',
+    tagsSorter: 'alpha',
+    deepLinking: true,
+    displayOperationId: false,
+    showMutatedRequest: true,
   },
   customCss: `
     .swagger-ui .topbar { display: none; }
@@ -102,13 +93,32 @@ export const createSwaggerMiddleware = () => {
       const router = getCurrentRouter();
       const document = openApiService.generateDocument(router);
       
+      // Update server URLs based on the current request
+      const protocol = req.secure ? 'https' : 'http';
+      const host = req.get('host') || 'localhost:3000';
+      const currentServerUrl = `${protocol}://${host}/trpc`;
+      
+      // Update the document with the current server URL
+      const updatedDocument = {
+        ...document,
+        servers: [
+          {
+            url: currentServerUrl,
+            description: 'Current server',
+          },
+          ...document.servers.filter(server => server.url !== currentServerUrl),
+        ],
+      };
+      
       Logger.debug('Serving Swagger UI with document', {
-        paths: Object.keys(document.paths || {}).length,
-        version: document.info.version,
+        paths: Object.keys(updatedDocument.paths || {}).length,
+        version: updatedDocument.info.version,
+        serverUrl: currentServerUrl,
+        host: host,
       });
       
-      // Create Swagger UI middleware with the document
-      const swaggerMiddleware = swaggerUi.setup(document, swaggerOptions);
+      // Create Swagger UI middleware with the updated document
+      const swaggerMiddleware = swaggerUi.setup(updatedDocument, swaggerOptions);
       swaggerMiddleware(req, res, next);
     } catch (error) {
       Logger.error('Failed to create Swagger UI middleware', {
@@ -116,16 +126,22 @@ export const createSwaggerMiddleware = () => {
         stack: error instanceof Error ? error.stack : undefined,
       });
       
-      // Fallback to basic document
-      const config = getOpenAPIConfig();
+      // Fallback to basic document with current host
+      const protocol = req.secure ? 'https' : 'http';
+      const host = req.get('host') || 'localhost:3000';
       const fallbackDoc = {
         openapi: '3.0.3',
         info: {
-          title: config.title,
-          version: config.version,
+          title: 'Backend API',
+          version: '1.0.0',
           description: 'API documentation is temporarily unavailable',
         },
-        servers: config.servers,
+        servers: [
+          {
+            url: `${protocol}://${host}/trpc`,
+            description: 'Current server',
+          },
+        ],
         paths: {},
       };
       
@@ -143,10 +159,28 @@ export const serveOpenApiJson = (req: Request, res: Response) => {
     const router = getCurrentRouter();
     const document = openApiService.generateDocument(router);
     
+    // Update server URLs based on the current request
+    const protocol = req.secure ? 'https' : 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const currentServerUrl = `${protocol}://${host}/trpc`;
+    
+    // Update the document with the current server URL
+    const updatedDocument = {
+      ...document,
+      servers: [
+        {
+          url: currentServerUrl,
+          description: 'Current server',
+        },
+        ...document.servers.filter(server => server.url !== currentServerUrl),
+      ],
+    };
+    
     // Add response headers
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('X-Generated-At', new Date().toISOString());
-    res.setHeader('X-Document-Version', document.info.version);
+    res.setHeader('X-Document-Version', updatedDocument.info.version);
+    res.setHeader('X-Server-URL', currentServerUrl);
     
     // Add CORS headers for external tools
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -154,13 +188,15 @@ export const serveOpenApiJson = (req: Request, res: Response) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
     Logger.info('OpenAPI JSON document served', {
-      paths: Object.keys(document.paths || {}).length,
-      version: document.info.version,
+      paths: Object.keys(updatedDocument.paths || {}).length,
+      version: updatedDocument.info.version,
+      serverUrl: currentServerUrl,
+      host: host,
       userAgent: req.headers['user-agent'],
       requestId: (req as any).requestId,
     });
     
-    res.json(document);
+    res.json(updatedDocument);
   } catch (error) {
     Logger.error('Failed to serve OpenAPI JSON document', {
       error: error instanceof Error ? error.message : 'Unknown error',
