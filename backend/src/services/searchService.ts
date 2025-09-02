@@ -43,7 +43,8 @@ class SearchService {
       logger.info('Search service initialized successfully');
     } catch (error) {
       logger.error('Failed to initialize search service:', error);
-      throw error;
+      // Don't throw error to allow application to start without search
+      this.client = null;
     }
   }
 
@@ -531,10 +532,32 @@ class SearchService {
   }
 
   /**
+   * Check if search service is initialized
+   */
+  isInitialized(): boolean {
+    return this.client !== null;
+  }
+
+  /**
    * Check if search service is healthy
    */
   async isHealthy(timeoutMs: number = 10000): Promise<boolean> {
     try {
+      // First check if we have a client
+      if (!this.client) {
+        logger.debug('Search service client not initialized, attempting to connect...');
+        try {
+          await this.initialize();
+          // If initialization still failed, return false
+          if (!this.client) {
+            return false;
+          }
+        } catch (initError) {
+          logger.error('Failed to initialize search service for health check:', initError);
+          return false;
+        }
+      }
+      
       return await elasticsearchConnection.ping(timeoutMs);
     } catch (error) {
       logger.error('Search service health check failed:', error);

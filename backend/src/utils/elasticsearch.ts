@@ -71,7 +71,13 @@ class ElasticsearchConnection {
   async ping(timeoutMs: number = 10000): Promise<boolean> {
     try {
       if (!this.client) {
-        return false;
+        logger.debug('Elasticsearch client not initialized, attempting to connect...');
+        try {
+          await this.connect();
+        } catch (connectError) {
+          logger.error('Failed to connect to Elasticsearch for ping:', connectError);
+          return false;
+        }
       }
       
       // Create a timeout promise
