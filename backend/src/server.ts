@@ -47,6 +47,8 @@ app.use(helmet({
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'self'"],
+      // Don't upgrade insecure requests in development
+      ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
     },
   },
   // Disable HSTS in development to prevent HTTPS enforcement
@@ -167,32 +169,70 @@ app.get('/api/docs/debug', (req, res) => {
 
 // Simple test page to verify Swagger UI is working
 app.get('/api/docs/test', (req, res) => {
+  const protocol = req.secure ? 'https' : 'http';
+  const host = req.get('host');
+  
   res.send(`
     <!DOCTYPE html>
     <html>
     <head>
       <title>Swagger UI Test</title>
+      <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests 'none';">
     </head>
     <body>
       <h1>Swagger UI Test Page</h1>
       <p>If you can see this page, the server is working correctly.</p>
+      <p><strong>Current Protocol:</strong> ${protocol}</p>
+      <p><strong>Current Host:</strong> ${host}</p>
+      
       <ul>
-        <li><a href="/api/docs/">Swagger UI Documentation</a></li>
-        <li><a href="/api/docs/openapi.json">OpenAPI JSON</a></li>
-        <li><a href="/api/docs/debug">Debug Info</a></li>
-        <li><a href="/health">Health Check</a></li>
+        <li><a href="http://${host}/api/docs/">Swagger UI Documentation (HTTP)</a></li>
+        <li><a href="http://${host}/api/docs/openapi.json">OpenAPI JSON (HTTP)</a></li>
+        <li><a href="http://${host}/api/docs/debug">Debug Info (HTTP)</a></li>
+        <li><a href="http://${host}/health">Health Check (HTTP)</a></li>
       </ul>
+      
+      <h2>Asset Tests</h2>
+      <button onclick="testAssets()">Test Static Assets</button>
+      <div id="assetResult"></div>
       
       <h2>Quick Test</h2>
       <button onclick="testSwaggerUI()">Test Swagger UI Loading</button>
       <div id="result"></div>
       
       <script>
+        function testAssets() {
+          const result = document.getElementById('assetResult');
+          result.innerHTML = 'Testing static assets...';
+          
+          const assets = [
+            'http://${host}/api/docs/swagger-ui.css',
+            'http://${host}/api/docs/swagger-ui-bundle.js',
+            'http://${host}/api/docs/swagger-ui-standalone-preset.js'
+          ];
+          
+          Promise.all(assets.map(url => 
+            fetch(url).then(response => ({
+              url,
+              status: response.status,
+              ok: response.ok
+            })).catch(error => ({
+              url,
+              status: 'ERROR',
+              error: error.message
+            }))
+          )).then(results => {
+            result.innerHTML = '<h3>Asset Test Results:</h3><ul>' + 
+              results.map(r => \`<li>\${r.url}: \${r.ok ? '✅ OK' : '❌ ' + (r.error || r.status)}</li>\`).join('') + 
+              '</ul>';
+          });
+        }
+        
         function testSwaggerUI() {
           const result = document.getElementById('result');
           result.innerHTML = 'Testing...';
           
-          fetch('/api/docs/openapi.json')
+          fetch('http://${host}/api/docs/openapi.json')
             .then(response => response.json())
             .then(data => {
               result.innerHTML = \`
@@ -200,9 +240,9 @@ app.get('/api/docs/test', (req, res) => {
                 <p><strong>Title:</strong> \${data.info.title}</p>
                 <p><strong>Version:</strong> \${data.info.version}</p>
                 <p><strong>Endpoints:</strong> \${Object.keys(data.paths || {}).length}</p>
-                <p><strong>Available Paths:</strong></p>
-                <ul>\${Object.keys(data.paths || {}).map(path => \`<li>\${path}</li>\`).join('')}</ul>
-                <p><a href="/api/docs/" target="_blank">Open Swagger UI</a></p>
+                <p><strong>Server URLs:</strong></p>
+                <ul>\${data.servers.map(server => \`<li>\${server.url} - \${server.description}</li>\`).join('')}</ul>
+                <p><a href="http://${host}/api/docs/" target="_blank">Open Swagger UI (HTTP)</a></p>
               \`;
             })
             .catch(error => {
@@ -215,9 +255,25 @@ app.get('/api/docs/test', (req, res) => {
   `);
 });
 
-// Redirect /docs to /api/docs for convenience
+// Alternative Swagger UI path to bypass HTTPS caching issues
+app.use('/docs', (req, res, next) => {
+  // Skip middleware for the redirect route
+  if (req.path === '/docs' && !req.path.endsWith('/')) {
+    return next();
+  }
+  
+  // Ensure no HTTPS upgrade for this path
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+}, swaggerUi.serve);
+
+app.get('/docs/', createSwaggerMiddleware());
+
+// Redirect /docs to /docs/ (with trailing slash)
 app.get('/docs', (req, res) => {
-  res.redirect('/api/docs');
+  res.redirect(301, '/docs/');
 });
 
 // Initialize file-based routing and create tRPC middleware
