@@ -56,7 +56,7 @@
   "license": "MIT",
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",
-    "@prisma/client": "^5.7.1",
+    "@prisma/client": "^6.15.0",
     "@trpc/server": "^10.45.0",
     "@types/swagger-ui-express": "^4.1.8",
     "bcryptjs": "^2.4.3",
