@@ -68,7 +68,7 @@ class ElasticsearchConnection {
   /**
    * Check if Elasticsearch is connected and healthy
    */
-  async ping(timeoutMs: number = 10000): Promise<boolean> {
+  async ping(timeoutMs: number = 5000): Promise<boolean> {
     try {
       if (!this.client) {
         logger.debug('Elasticsearch client not initialized, attempting to connect...');
@@ -78,6 +78,12 @@ class ElasticsearchConnection {
           logger.error('Failed to connect to Elasticsearch for ping:', connectError);
           return false;
         }
+      }
+      
+      // Double-check that client is available after connection attempt
+      if (!this.client) {
+        logger.error('Elasticsearch client is still null after connection attempt');
+        return false;
       }
       
       // Create a timeout promise

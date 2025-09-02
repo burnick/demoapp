@@ -541,30 +541,48 @@ class SearchService {
   /**
    * Check if search service is healthy
    */
-  async isHealthy(timeoutMs: number = 10000): Promise<boolean> {
+  async isHealthy(timeoutMs: number = 5000): Promise<boolean> {
     const startTime = Date.now();
     logger.debug('Starting Elasticsearch health check', { timeoutMs });
     
     try {
-      // First check if we have a client
-      if (!this.client) {
-        logger.debug('Search service client not initialized, attempting to connect...');
-        try {
-          await this.initialize();
-          // If initialization still failed, return false
-          if (!this.client) {
-            logger.debug('Search service initialization failed, client is null');
-            return false;
-          }
-        } catch (initError) {
-          logger.error('Failed to initialize search service for health check:', initError);
-          return false;
-        }
-      }
+      // Use a simple approach - try to ping Elasticsearch with proper timeout handling
+      const { getElasticsearchConfig } = await import('../utils/config');
+      const config = getElasticsearchConfig();
       
-      const result = await elasticsearchConnection.ping(timeoutMs);
+      if (!config.url) {
+        logger.debug('Elasticsearch URL not configured, considering service as unavailable');
+        return false;
+      }
+
+      // Create a timeout promise that resolves to false (unhealthy)
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => {
+          logger.debug('Elasticsearch health check timed out', { timeoutMs });
+          resolve(false);
+        }, timeoutMs);
+      });
+
+      // Try to ping using the elasticsearch connection with a shorter timeout
+      const pingPromise = elasticsearchConnection.ping(timeoutMs - 100)
+        .then(result => {
+          logger.debug('Elasticsearch ping result', { result });
+          return result;
+        })
+        .catch(error => {
+          logger.debug('Elasticsearch ping failed', { error: error.message });
+          return false;
+        });
+
+      const result = await Promise.race([pingPromise, timeoutPromise]);
       const responseTime = Date.now() - startTime;
-      logger.debug('Elasticsearch health check completed', { result, responseTime, timeoutMs });
+      
+      logger.debug('Elasticsearch health check completed', { 
+        result, 
+        responseTime, 
+        timeoutMs,
+        status: result ? 'healthy' : 'unhealthy'
+      });
       
       return result;
     } catch (error) {
