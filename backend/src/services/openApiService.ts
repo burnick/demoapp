@@ -45,29 +45,9 @@ export class OpenApiService {
       
       const config = getOpenAPIConfig();
       
-      Logger.debug('Router structure for OpenAPI', {
-        routerType: typeof router,
-        hasDef: !!router._def,
-        defKeys: router._def ? Object.keys(router._def) : [],
-        recordKeys: router._def?.record ? Object.keys(router._def.record) : [],
-      });
-      
-      const document = generateOpenApiDocument(router, {
-        title: config.title,
-        version: config.version,
-        description: config.description,
-        baseUrl: config.servers[0]?.url || 'http://localhost:3000/trpc',
-        tags: config.tags?.map(tag => tag.name) || [],
-        docsUrl: '/api/docs',
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-            description: 'JWT token for authentication. Include as: Bearer <token>',
-          },
-        },
-      });
+      // For now, return a manually created document with the main endpoints
+      // TODO: Fix automatic generation from nested router structure
+      const document = this.createManualOpenApiDocument(config);
 
       // Add servers and tags with descriptions manually
       document.servers = config.servers;
@@ -168,6 +148,280 @@ export class OpenApiService {
   }
 
 
+
+  /**
+   * Create manual OpenAPI document with main endpoints
+   * TODO: Replace with automatic generation once router structure is fixed
+   */
+  private createManualOpenApiDocument(config: any): OpenApiDocument {
+    return {
+      openapi: '3.0.3',
+      info: {
+        title: config.title,
+        version: config.version,
+        description: config.description,
+      },
+      servers: config.servers,
+      paths: {
+        '/health': {
+          get: {
+            summary: 'Health check endpoint',
+            description: 'Check the health status of the API',
+            tags: ['Health'],
+            responses: {
+              '200': {
+                description: 'API is healthy',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        status: { type: 'string', example: 'ok' },
+                        timestamp: { type: 'string', format: 'date-time' },
+                        service: { type: 'string', example: 'backend-api' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/v1.thirdPartyOAuth.getProviders': {
+          get: {
+            summary: 'Get available OAuth providers',
+            description: 'Get list of configured third-party OAuth providers (Google, Facebook)',
+            tags: ['Third-Party OAuth'],
+            responses: {
+              '200': {
+                description: 'List of available OAuth providers',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        result: {
+                          type: 'object',
+                          properties: {
+                            data: {
+                              type: 'object',
+                              properties: {
+                                success: { type: 'boolean', example: true },
+                                data: {
+                                  type: 'object',
+                                  properties: {
+                                    providers: {
+                                      type: 'array',
+                                      items: {
+                                        type: 'object',
+                                        properties: {
+                                          name: { type: 'string', example: 'google' },
+                                          displayName: { type: 'string', example: 'Google' },
+                                          iconUrl: { type: 'string', example: 'https://developers.google.com/identity/images/g-logo.png' },
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                                timestamp: { type: 'string', format: 'date-time' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/v1.thirdPartyOAuth.getAuthUrl': {
+          post: {
+            summary: 'Get OAuth authorization URL',
+            description: 'Generate OAuth authorization URL for the specified provider',
+            tags: ['Third-Party OAuth'],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      provider: { type: 'string', enum: ['google', 'facebook'] },
+                      redirectUrl: { type: 'string', format: 'uri' },
+                    },
+                    required: ['provider'],
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'OAuth authorization URL generated',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        result: {
+                          type: 'object',
+                          properties: {
+                            data: {
+                              type: 'object',
+                              properties: {
+                                success: { type: 'boolean', example: true },
+                                data: {
+                                  type: 'object',
+                                  properties: {
+                                    authUrl: { type: 'string', format: 'uri' },
+                                    provider: { type: 'string', example: 'google' },
+                                  },
+                                },
+                                timestamp: { type: 'string', format: 'date-time' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/v1.thirdPartyOAuth.handleCallback': {
+          post: {
+            summary: 'Handle OAuth callback',
+            description: 'Process OAuth callback from third-party provider and authenticate user',
+            tags: ['Third-Party OAuth'],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      provider: { type: 'string', enum: ['google', 'facebook'] },
+                      code: { type: 'string' },
+                      state: { type: 'string' },
+                      error: { type: 'string' },
+                      errorDescription: { type: 'string' },
+                    },
+                    required: ['provider', 'code', 'state'],
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'OAuth authentication successful',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        result: {
+                          type: 'object',
+                          properties: {
+                            data: {
+                              type: 'object',
+                              properties: {
+                                success: { type: 'boolean', example: true },
+                                data: {
+                                  type: 'object',
+                                  properties: {
+                                    user: {
+                                      type: 'object',
+                                      properties: {
+                                        id: { type: 'string' },
+                                        email: { type: 'string', format: 'email' },
+                                        name: { type: 'string' },
+                                        avatar: { type: 'string', format: 'uri' },
+                                        emailVerified: { type: 'boolean' },
+                                      },
+                                    },
+                                    tokens: {
+                                      type: 'object',
+                                      properties: {
+                                        accessToken: { type: 'string' },
+                                        refreshToken: { type: 'string' },
+                                        expiresAt: { type: 'string', format: 'date-time' },
+                                      },
+                                    },
+                                    isNewUser: { type: 'boolean' },
+                                  },
+                                },
+                                timestamp: { type: 'string', format: 'date-time' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        '/v1.thirdPartyOAuth.getStatus': {
+          get: {
+            summary: 'Get OAuth service status',
+            description: 'Get current status of OAuth service and providers (for debugging)',
+            tags: ['Third-Party OAuth'],
+            responses: {
+              '200': {
+                description: 'OAuth service status',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        result: {
+                          type: 'object',
+                          properties: {
+                            data: {
+                              type: 'object',
+                              properties: {
+                                success: { type: 'boolean', example: true },
+                                data: {
+                                  type: 'object',
+                                  properties: {
+                                    initialized: { type: 'boolean' },
+                                    enabledProviders: { type: 'array', items: { type: 'string' } },
+                                    totalProviders: { type: 'number' },
+                                    stateStoreSize: { type: 'number' },
+                                  },
+                                },
+                                timestamp: { type: 'string', format: 'date-time' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+            description: 'JWT token for authentication',
+          },
+        },
+      },
+      tags: config.tags || [],
+    };
+  }
 
   /**
    * Get minimal OpenAPI document for fallback
