@@ -43,7 +43,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow inline scripts for Swagger UI
       imgSrc: ["'self'", "data:", "https:"],
       fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "http://localhost:3000", "http://burnick.local:3000"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'self'"],
@@ -137,6 +137,56 @@ app.get('/api/docs/debug', (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
+});
+
+// Simple test page to verify Swagger UI is working
+app.get('/api/docs/test', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Swagger UI Test</title>
+    </head>
+    <body>
+      <h1>Swagger UI Test Page</h1>
+      <p>If you can see this page, the server is working correctly.</p>
+      <ul>
+        <li><a href="/api/docs/">Swagger UI Documentation</a></li>
+        <li><a href="/api/docs/openapi.json">OpenAPI JSON</a></li>
+        <li><a href="/api/docs/debug">Debug Info</a></li>
+        <li><a href="/health">Health Check</a></li>
+      </ul>
+      
+      <h2>Quick Test</h2>
+      <button onclick="testSwaggerUI()">Test Swagger UI Loading</button>
+      <div id="result"></div>
+      
+      <script>
+        function testSwaggerUI() {
+          const result = document.getElementById('result');
+          result.innerHTML = 'Testing...';
+          
+          fetch('/api/docs/openapi.json')
+            .then(response => response.json())
+            .then(data => {
+              result.innerHTML = \`
+                <h3>✅ OpenAPI Document Loaded Successfully</h3>
+                <p><strong>Title:</strong> \${data.info.title}</p>
+                <p><strong>Version:</strong> \${data.info.version}</p>
+                <p><strong>Endpoints:</strong> \${Object.keys(data.paths || {}).length}</p>
+                <p><strong>Available Paths:</strong></p>
+                <ul>\${Object.keys(data.paths || {}).map(path => \`<li>\${path}</li>\`).join('')}</ul>
+                <p><a href="/api/docs/" target="_blank">Open Swagger UI</a></p>
+              \`;
+            })
+            .catch(error => {
+              result.innerHTML = \`<h3>❌ Error loading OpenAPI document:</h3><p>\${error.message}</p>\`;
+            });
+        }
+      </script>
+    </body>
+    </html>
+  `);
 });
 
 // Redirect /docs to /api/docs for convenience
