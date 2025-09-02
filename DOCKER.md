@@ -66,8 +66,8 @@ This project uses Docker and Docker Compose for containerized development and de
 - **URL**: `redis://localhost:6379`
 
 ### Elasticsearch
-- **Port**: 9200
-- **URL**: `http://localhost:9200`
+- **Port**: 9201
+- **URL**: `http://localhost:9201`
 
 ## Environment Variables
 

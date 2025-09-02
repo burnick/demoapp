@@ -67,7 +67,7 @@ case $choice in
         echo "📚 API Docs: http://localhost:3000/api/docs"
         echo "🐘 PostgreSQL: localhost:5432"
         echo "🔴 Redis: localhost:6379"
-        echo "🔍 Elasticsearch: http://localhost:9200"
+        echo "🔍 Elasticsearch: http://localhost:9201"
         echo ""
         echo "💡 View logs: npm run dev:logs"
         echo "🛑 Stop: npm run dev:down"

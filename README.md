@@ -49,7 +49,7 @@ Modern backend API system using Node.js, TypeScript, tRPC, Zod, and Prisma with 
 - **Backend API**: Node.js/TypeScript with tRPC (Port 3000)
 - **PostgreSQL**: Database (Port 5432)
 - **Redis**: Cache and sessions (Port 6379)
-- **Elasticsearch**: Search functionality (Port 9200)
+- **Elasticsearch**: Search functionality (Port 9201)
 
 ## Documentation
 
