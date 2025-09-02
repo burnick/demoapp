@@ -6,7 +6,7 @@ Modern backend API system using Node.js, TypeScript, tRPC, Zod, and Prisma with 
 
 ### Prerequisites
 - Docker Engine 20.10+
-- Docker Compose 2.0+
+- Docker Compose V2 (included with Docker Desktop)
 
 ### Development Setup
 

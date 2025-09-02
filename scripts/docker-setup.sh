@@ -14,12 +14,12 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
+if ! docker compose version &> /dev/null; then
+    echo "❌ Docker Compose V2 is not available. Please install Docker Desktop or Docker Compose V2."
     exit 1
 fi
 
-echo "✅ Docker and Docker Compose are available"
+echo "✅ Docker and Docker Compose V2 are available"
 echo ""
 
 # Check if .env exists

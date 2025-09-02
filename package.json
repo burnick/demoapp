@@ -20,7 +20,10 @@
     "db:seed": "docker compose exec backend npm run db:seed",
     "db:studio": "docker compose exec backend npm run db:studio",
     "validate": "./scripts/docker-validate.sh",
-    "setup": "./scripts/docker-setup.sh"
+    "setup": "./scripts/docker-setup.sh",
+    "debug:config": "docker compose -f docker-compose.yml -f docker-compose.dev.yml config",
+    "debug:config:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml config",
+    "fix:dev": "./scripts/fix-docker-dev.sh"
   },
   "keywords": [
     "docker",

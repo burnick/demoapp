@@ -5,7 +5,7 @@ This project uses Docker and Docker Compose for containerized development and de
 ## Prerequisites
 
 - Docker Engine 20.10+
-- Docker Compose 2.0+
+- Docker Compose V2 (comes with Docker Desktop or can be installed separately)
 
 ## Quick Start
 
@@ -181,18 +181,53 @@ All services include health checks:
 
 ## Troubleshooting
 
+### Common Build Errors
+
+#### "target stage 'production' could not be found"
+This error occurs when mixing production and development Docker configurations.
+
+**Quick Fix:**
+```bash
+npm run fix:dev
+```
+
+**Manual Solution:**
+```bash
+# Stop containers and clean up
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+docker image rm backend-api:dev 2>/dev/null || true
+
+# Rebuild and start
+npm run dev
+```
+
+#### "port is already allocated"
+Another service is using the same port.
+
+**Solution:**
+```bash
+# Stop conflicting services
+docker compose down
+# Or modify port mappings in docker-compose.yml
+```
+
 ### Port Conflicts
 If ports are already in use, modify the port mappings in `docker-compose.yml`.
 
 ### Database Connection Issues
-1. Ensure PostgreSQL is healthy: `docker-compose ps`
-2. Check database logs: `docker-compose logs db`
+1. Ensure PostgreSQL is healthy: `docker compose ps`
+2. Check database logs: `docker compose logs db`
 3. Verify environment variables in `.env`
 
 ### Backend Not Starting
 1. Check backend logs: `npm run dev:logs`
 2. Ensure database is ready before backend starts
 3. Verify all environment variables are set
+
+### Development Hot Reload Not Working
+1. Ensure volumes are properly mounted in `docker-compose.dev.yml`
+2. Check that `node_modules` volume is excluded
+3. Verify file permissions on mounted volumes
 
 ### Performance Issues
 1. Increase Docker Desktop memory allocation

@@ -36,12 +36,12 @@
     "docker:build:prod": "docker build --target production -t backend-api:latest .",
     "docker:run": "docker run -p 3000:3000 backend-api",
     "docker:run:prod": "docker run -p 3000:3000 --env-file .env backend-api:latest",
-    "docker:compose:up": "docker-compose up -d",
-    "docker:compose:down": "docker-compose down",
-    "docker:compose:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
-    "docker:compose:prod": "docker-compose up -d --build",
-    "docker:compose:logs": "docker-compose logs -f backend",
-    "docker:compose:restart": "docker-compose restart backend"
+    "docker:compose:up": "docker compose up -d",
+    "docker:compose:down": "docker compose down",
+    "docker:compose:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
+    "docker:compose:prod": "docker compose up -d --build",
+    "docker:compose:logs": "docker compose logs -f backend",
+    "docker:compose:restart": "docker compose restart backend"
   },
   "keywords": [
     "typescript",

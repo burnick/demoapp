@@ -14,6 +14,8 @@ services:
     ports:
       - "3000:3000"
       - "9229:9229"  # Debug port
+    build:
+      target: development  
     
   db:
     environment:

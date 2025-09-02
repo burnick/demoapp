@@ -14,13 +14,14 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed or not in PATH"
+# Check if Docker Compose is installed (V2 syntax)
+if ! docker compose version &> /dev/null; then
+    echo "❌ Docker Compose V2 is not available"
+    echo "💡 Make sure you have Docker Desktop or Docker Compose V2 installed"
     exit 1
 fi
 
-echo "✅ Docker and Docker Compose are installed"
+echo "✅ Docker and Docker Compose V2 are available"
 
 # Check if .env file exists
 if [ ! -f .env ]; then
@@ -70,9 +71,9 @@ fi
 echo "✅ Docker daemon is running"
 
 # Validate docker-compose.yml syntax
-if ! docker-compose config &> /dev/null; then
+if ! docker compose config &> /dev/null; then
     echo "❌ docker-compose.yml has syntax errors"
-    echo "🔧 Run 'docker-compose config' to see the errors"
+    echo "🔧 Run 'docker compose config' to see the errors"
     exit 1
 fi
 
