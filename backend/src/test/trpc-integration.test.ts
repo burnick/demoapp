@@ -1,18 +1,17 @@
-import { describe, it, expect } from '@jest/globals';
-import { appRouter } from '../trpc/router';
-import { createContext } from '../trpc/context';
-import { Request, Response } from 'express';
-import { TestDataFactory, TestAssertions, MockDataGenerator } from './testUtils';
+import { describe, it, expect } from "@jest/globals";
+import { appRouter } from "../trpc/router";
+import { createContext } from "../trpc/context";
+import { Request, Response } from "express";
 
 // Mock dependencies
-jest.mock('../prisma/client', () => ({
+jest.mock("../prisma/client", () => ({
   prisma: {
     $connect: jest.fn(),
     $disconnect: jest.fn(),
   },
 }));
 
-jest.mock('../utils/logger', () => ({
+jest.mock("../utils/logger", () => ({
   Logger: {
     debug: jest.fn(),
     info: jest.fn(),
@@ -22,16 +21,16 @@ jest.mock('../utils/logger', () => ({
   },
 }));
 
-describe('tRPC Integration Tests', () => {
-  describe('Health Procedure', () => {
-    it('should execute health procedure successfully', async () => {
+describe("tRPC Integration Tests", () => {
+  describe("Health Procedure", () => {
+    it("should execute health procedure successfully", async () => {
       // Create mock context
       const mockReq = {
         headers: {},
-        ip: '127.0.0.1',
-        connection: { remoteAddress: '127.0.0.1' },
+        ip: "127.0.0.1",
+        connection: { remoteAddress: "127.0.0.1" },
       } as Request;
-      
+
       const mockRes = {} as Response;
       const context = await createContext({ req: mockReq, res: mockRes });
 
@@ -42,22 +41,22 @@ describe('tRPC Integration Tests', () => {
       const result = await caller.health();
 
       expect(result).toMatchObject({
-        status: 'ok',
-        service: 'backend-api',
+        status: "ok",
+        service: "backend-api",
       });
       expect(result.timestamp).toBeDefined();
       expect(result.requestId).toBeDefined();
     });
   });
 
-  describe('Middleware Integration', () => {
-    it('should apply logging middleware to procedures', async () => {
+  describe("Middleware Integration", () => {
+    it("should apply logging middleware to procedures", async () => {
       const mockReq = {
         headers: {},
-        ip: '127.0.0.1',
-        connection: { remoteAddress: '127.0.0.1' },
+        ip: "127.0.0.1",
+        connection: { remoteAddress: "127.0.0.1" },
       } as Request;
-      
+
       const mockRes = {} as Response;
       const context = await createContext({ req: mockReq, res: mockRes });
 
@@ -66,21 +65,21 @@ describe('tRPC Integration Tests', () => {
       // This should trigger the logging middleware
       const result = await caller.health();
 
-      expect(result.status).toBe('ok');
+      expect(result.status).toBe("ok");
       // Verify that the procedure executed without throwing errors
     });
 
-    it('should apply timing middleware to procedures', async () => {
+    it("should apply timing middleware to procedures", async () => {
       const mockReq = {
         headers: {},
-        ip: '127.0.0.1',
-        connection: { remoteAddress: '127.0.0.1' },
+        ip: "127.0.0.1",
+        connection: { remoteAddress: "127.0.0.1" },
       } as Request;
-      
+
       const mockRes = {
         setHeader: jest.fn(),
       } as any;
-      
+
       const context = await createContext({ req: mockReq, res: mockRes });
       const caller = appRouter.createCaller(context);
 
@@ -92,16 +91,16 @@ describe('tRPC Integration Tests', () => {
     });
   });
 
-  describe('Error Handling Integration', () => {
-    it('should handle errors through error middleware', async () => {
+  describe("Error Handling Integration", () => {
+    it("should handle errors through error middleware", async () => {
       // Test that error handling middleware is properly integrated
       // Since our health procedure doesn't throw errors, we test the structure
       const mockReq = {
         headers: {},
-        ip: '127.0.0.1',
-        connection: { remoteAddress: '127.0.0.1' },
+        ip: "127.0.0.1",
+        connection: { remoteAddress: "127.0.0.1" },
       } as Request;
-      
+
       const mockRes = {} as Response;
       const context = await createContext({ req: mockReq, res: mockRes });
 
@@ -109,18 +108,18 @@ describe('tRPC Integration Tests', () => {
 
       // This should not throw and should be handled by error middleware
       const result = await caller.health();
-      expect(result.status).toBe('ok');
+      expect(result.status).toBe("ok");
     });
   });
 
-  describe('Router Structure', () => {
-    it('should have proper router structure', () => {
+  describe("Router Structure", () => {
+    it("should have proper router structure", () => {
       expect(appRouter._def).toBeDefined();
       expect(appRouter._def.procedures).toBeDefined();
-      expect(Object.keys(appRouter._def.procedures)).toContain('health');
+      expect(Object.keys(appRouter._def.procedures)).toContain("health");
     });
 
-    it('should support procedure creation', () => {
+    it("should support procedure creation", () => {
       const procedures = appRouter._def.procedures;
       expect(procedures.health).toBeDefined();
       expect(procedures.health._def).toBeDefined();
