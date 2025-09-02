@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import swaggerUi from 'swagger-ui-express';
-import { openApiService } from '../services/openApiService';
-import { getCurrentRouter } from '../trpc/server';
-import { Logger } from '../utils/logger';
-import { getOpenAPIConfig } from '../utils/openapi';
+import { Request, Response, NextFunction } from "express";
+import swaggerUi from "swagger-ui-express";
+import { openApiService } from "../services/openApiService";
+import { getCurrentRouter } from "../trpc/server";
+import { Logger } from "../utils/logger";
+import { getOpenAPIConfig } from "../utils/openapi";
 
 /**
  * Swagger UI configuration options
@@ -11,7 +11,7 @@ import { getOpenAPIConfig } from '../utils/openapi';
 const swaggerOptions: swaggerUi.SwaggerUiOptions = {
   explorer: true,
   swaggerOptions: {
-    docExpansion: 'list',
+    docExpansion: "list",
     filter: true,
     showRequestDuration: true,
     tryItOutEnabled: true,
@@ -19,8 +19,8 @@ const swaggerOptions: swaggerUi.SwaggerUiOptions = {
     displayRequestDuration: true,
     defaultModelsExpandDepth: 2,
     defaultModelExpandDepth: 2,
-    operationsSorter: 'alpha',
-    tagsSorter: 'alpha',
+    operationsSorter: "alpha",
+    tagsSorter: "alpha",
     deepLinking: true,
     displayOperationId: false,
     showMutatedRequest: true,
@@ -34,52 +34,56 @@ const swaggerOptions: swaggerUi.SwaggerUiOptions = {
     .swagger-ui .btn.authorize { background-color: #49cc90; border-color: #49cc90; }
     .swagger-ui .btn.authorize:hover { background-color: #41b883; border-color: #41b883; }
   `,
-  customSiteTitle: 'Backend API Documentation',
-  customfavIcon: '/favicon.ico',
+  customSiteTitle: "Backend API Documentation",
+  customfavIcon: "/favicon.ico",
 };
 
 /**
  * Generate OpenAPI document middleware
  */
-export const generateOpenApiDocument = (req: Request, res: Response, next: NextFunction) => {
+export const generateOpenApiDocument = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const router = getCurrentRouter();
     const document = openApiService.generateDocument(router);
-    
+
     // Add request info to response headers
-    res.setHeader('X-Generated-At', new Date().toISOString());
-    res.setHeader('X-Document-Version', document.info.version);
-    
+    res.setHeader("X-Generated-At", new Date().toISOString());
+    res.setHeader("X-Document-Version", document.info.version);
+
     // Store document in request for use by Swagger UI
     (req as any).swaggerDoc = document;
-    
-    Logger.debug('OpenAPI document generated for Swagger UI', {
+
+    Logger.debug("OpenAPI document generated for Swagger UI", {
       paths: Object.keys(document.paths || {}).length,
       version: document.info.version,
       requestId: (req as any).requestId,
     });
-    
+
     next();
   } catch (error) {
-    Logger.error('Failed to generate OpenAPI document for Swagger UI', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    Logger.error("Failed to generate OpenAPI document for Swagger UI", {
+      error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       requestId: (req as any).requestId,
     });
-    
+
     // Return minimal document on error
     const config = getOpenAPIConfig();
     (req as any).swaggerDoc = {
-      openapi: '3.0.3',
+      openapi: "3.0.3",
       info: {
         title: config.title,
         version: config.version,
-        description: 'API documentation is temporarily unavailable',
+        description: "API documentation is temporarily unavailable",
       },
       servers: config.servers,
       paths: {},
     };
-    
+
     next();
   }
 };
@@ -92,59 +96,64 @@ export const createSwaggerMiddleware = () => {
     try {
       const router = getCurrentRouter();
       const document = openApiService.generateDocument(router);
-      
+
       // Update server URLs based on the current request
-      const protocol = req.secure ? 'https' : 'http';
-      const host = req.get('host') || 'localhost:3000';
+      const protocol = req.secure ? "https" : "http";
+      const host = req.get("host") || "localhost:3000";
       const currentServerUrl = `${protocol}://${host}/trpc`;
-      
+
       // Update the document with the current server URL
       const updatedDocument = {
         ...document,
         servers: [
           {
             url: currentServerUrl,
-            description: 'Current server',
+            description: "Current server",
           },
-          ...document.servers.filter(server => server.url !== currentServerUrl),
+          ...(document.servers || []).filter(
+            (server) => server.url !== currentServerUrl
+          ),
         ],
       };
-      
-      Logger.debug('Serving Swagger UI with document', {
+
+      Logger.debug("Serving Swagger UI with document", {
         paths: Object.keys(updatedDocument.paths || {}).length,
         version: updatedDocument.info.version,
         serverUrl: currentServerUrl,
         host: host,
       });
-      
+
       // Create Swagger UI middleware with the updated document
-      const swaggerMiddleware = swaggerUi.setup(updatedDocument, swaggerOptions);
+      const swaggerMiddleware = swaggerUi.setup(
+        updatedDocument,
+        swaggerOptions
+      );
       swaggerMiddleware(req, res, next);
     } catch (error) {
-      Logger.error('Failed to create Swagger UI middleware', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+      Logger.error("Failed to create Swagger UI middleware", {
+        error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
-      
+
       // Fallback to basic document with current host
-      const protocol = req.secure ? 'https' : 'http';
-      const host = req.get('host') || 'localhost:3000';
+      const protocol = req.secure ? "https" : "http";
+      const host = req.get("host") || "localhost:3000";
       const fallbackDoc = {
-        openapi: '3.0.3',
+        openapi: "3.0.3",
         info: {
-          title: 'Backend API',
-          version: '1.0.0',
-          description: 'API documentation is temporarily unavailable',
+          title: "Backend API",
+          version: "1.0.0",
+          description: "API documentation is temporarily unavailable",
         },
         servers: [
           {
             url: `${protocol}://${host}/trpc`,
-            description: 'Current server',
+            description: "Current server",
           },
         ],
         paths: {},
       };
-      
+
       const swaggerMiddleware = swaggerUi.setup(fallbackDoc, swaggerOptions);
       swaggerMiddleware(req, res, next);
     }
@@ -158,57 +167,59 @@ export const serveOpenApiJson = (req: Request, res: Response) => {
   try {
     const router = getCurrentRouter();
     const document = openApiService.generateDocument(router);
-    
+
     // Update server URLs based on the current request
-    const protocol = req.secure ? 'https' : 'http';
-    const host = req.get('host') || 'localhost:3000';
+    const protocol = req.secure ? "https" : "http";
+    const host = req.get("host") || "localhost:3000";
     const currentServerUrl = `${protocol}://${host}/trpc`;
-    
+
     // Update the document with the current server URL
     const updatedDocument = {
       ...document,
       servers: [
         {
           url: currentServerUrl,
-          description: 'Current server',
+          description: "Current server",
         },
-        ...document.servers.filter(server => server.url !== currentServerUrl),
+        ...(document.servers || []).filter(
+          (server) => server.url !== currentServerUrl
+        ),
       ],
     };
-    
+
     // Add response headers
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('X-Generated-At', new Date().toISOString());
-    res.setHeader('X-Document-Version', updatedDocument.info.version);
-    res.setHeader('X-Server-URL', currentServerUrl);
-    
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("X-Generated-At", new Date().toISOString());
+    res.setHeader("X-Document-Version", updatedDocument.info.version);
+    res.setHeader("X-Server-URL", currentServerUrl);
+
     // Add CORS headers for external tools
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    Logger.info('OpenAPI JSON document served', {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    Logger.info("OpenAPI JSON document served", {
       paths: Object.keys(updatedDocument.paths || {}).length,
       version: updatedDocument.info.version,
       serverUrl: currentServerUrl,
       host: host,
-      userAgent: req.headers['user-agent'],
+      userAgent: req.headers["user-agent"],
       requestId: (req as any).requestId,
     });
-    
+
     res.json(updatedDocument);
   } catch (error) {
-    Logger.error('Failed to serve OpenAPI JSON document', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    Logger.error("Failed to serve OpenAPI JSON document", {
+      error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       requestId: (req as any).requestId,
     });
-    
+
     res.status(500).json({
       success: false,
       error: {
-        code: 'OPENAPI_GENERATION_ERROR',
-        message: 'Failed to generate OpenAPI document',
+        code: "OPENAPI_GENERATION_ERROR",
+        message: "Failed to generate OpenAPI document",
       },
       timestamp: new Date().toISOString(),
     });
@@ -223,28 +234,28 @@ export const serveOpenApiStats = (req: Request, res: Response) => {
     const router = getCurrentRouter();
     const document = openApiService.generateDocument(router);
     const stats = openApiService.getDocumentStats(document);
-    
-    Logger.debug('OpenAPI stats requested', {
+
+    Logger.debug("OpenAPI stats requested", {
       requestId: (req as any).requestId,
-      userAgent: req.headers['user-agent'],
+      userAgent: req.headers["user-agent"],
     });
-    
+
     res.json({
       success: true,
       data: stats,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    Logger.error('Failed to get OpenAPI stats', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    Logger.error("Failed to get OpenAPI stats", {
+      error: error instanceof Error ? error.message : "Unknown error",
       requestId: (req as any).requestId,
     });
-    
+
     res.status(500).json({
       success: false,
       error: {
-        code: 'OPENAPI_STATS_ERROR',
-        message: 'Failed to get OpenAPI statistics',
+        code: "OPENAPI_STATS_ERROR",
+        message: "Failed to get OpenAPI statistics",
       },
       timestamp: new Date().toISOString(),
     });
@@ -255,45 +266,45 @@ export const serveOpenApiStats = (req: Request, res: Response) => {
  * Clear OpenAPI cache endpoint (development only)
  */
 export const clearOpenApiCache = (req: Request, res: Response): void => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     res.status(403).json({
       success: false,
       error: {
-        code: 'FORBIDDEN',
-        message: 'Cache clearing is not allowed in production',
+        code: "FORBIDDEN",
+        message: "Cache clearing is not allowed in production",
       },
       timestamp: new Date().toISOString(),
     });
     return;
   }
-  
+
   try {
     openApiService.clearCache();
-    
-    Logger.info('OpenAPI cache cleared', {
+
+    Logger.info("OpenAPI cache cleared", {
       requestId: (req as any).requestId,
-      userAgent: req.headers['user-agent'],
+      userAgent: req.headers["user-agent"],
     });
-    
+
     res.json({
       success: true,
       data: {
-        message: 'OpenAPI cache cleared successfully',
+        message: "OpenAPI cache cleared successfully",
         clearedAt: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    Logger.error('Failed to clear OpenAPI cache', {
-      error: error instanceof Error ? error.message : 'Unknown error',
+    Logger.error("Failed to clear OpenAPI cache", {
+      error: error instanceof Error ? error.message : "Unknown error",
       requestId: (req as any).requestId,
     });
-    
+
     res.status(500).json({
       success: false,
       error: {
-        code: 'CACHE_CLEAR_ERROR',
-        message: 'Failed to clear OpenAPI cache',
+        code: "CACHE_CLEAR_ERROR",
+        message: "Failed to clear OpenAPI cache",
       },
       timestamp: new Date().toISOString(),
     });
