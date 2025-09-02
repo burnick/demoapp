@@ -23,11 +23,8 @@ export function getOpenAPIConfig(): OpenAPIConfig {
   // Determine the base URL based on environment and request context
   let baseUrl: string;
   if (process.env.API_BASE_URL) {
-    baseUrl = process.env.API_BASE_URL;
+    baseUrl = `http://${process.env.API_BASE_URL}:${serverConfig.port}`;
   } else if (isDevelopment) {
-    // In development, support multiple hostnames
-    baseUrl = `http://burnick.local:${serverConfig.port}`;
-  } else {
     baseUrl = `http://localhost:${serverConfig.port}`;
   }
 

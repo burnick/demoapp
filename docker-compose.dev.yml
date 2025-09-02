@@ -11,6 +11,7 @@ services:
       - NODE_ENV=development
       - LOG_LEVEL=debug
       - ELASTICSEARCH_URL=${ELASTICSEARCH_URL}
+      - API_BASE_URL=192.168.1.16
     command: npm run dev
     ports:
       - "3000:3000"
