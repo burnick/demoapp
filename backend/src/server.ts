@@ -67,78 +67,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint (Express route for basic health)
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    service: 'backend-api',
-    version: '1.0.0'
-  });
-});
+// Import health route handlers
+import { getHealth, getReadiness, getLiveness } from './routes/health';
 
-// Detailed health check endpoint with service dependencies
-app.get('/api/health', async (req, res) => {
-  try {
-    const { getDatabaseStatus } = await import('./utils/database');
-    const { cacheService } = await import('./services/cacheService');
-    const { searchService } = await import('./services/searchService');
+// Health check endpoints
+app.get('/api/health', getHealth);
+app.get('/api/health/ready', getReadiness);
+app.get('/api/health/live', getLiveness);
 
-    const [dbStatus, cacheHealthy, searchHealthy] = await Promise.allSettled([
-      getDatabaseStatus(),
-      cacheService.isHealthy(),
-      searchService.isHealthy()
-    ]);
-
-    const health = {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      service: 'backend-api',
-      version: '1.0.0',
-      dependencies: {
-        database: dbStatus.status === 'fulfilled' ? dbStatus.value : { status: 'unhealthy', error: 'Connection failed' },
-        cache: cacheHealthy.status === 'fulfilled' ? { status: cacheHealthy.value ? 'healthy' : 'unhealthy' } : { status: 'unhealthy', error: 'Connection failed' },
-        search: searchHealthy.status === 'fulfilled' ? { status: searchHealthy.value ? 'healthy' : 'unhealthy' } : { status: 'unhealthy', error: 'Connection failed' }
-      }
-    };
-
-    // Determine overall health status
-    const allHealthy = 
-      (dbStatus.status === 'fulfilled' && dbStatus.value.status === 'healthy') &&
-      (cacheHealthy.status === 'fulfilled' && cacheHealthy.value) &&
-      (searchHealthy.status === 'fulfilled' && searchHealthy.value);
-
-    if (!allHealthy) {
-      health.status = 'degraded';
-    }
-
-    res.status(allHealthy ? 200 : 503).json(health);
-  } catch (error) {
-    res.status(503).json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      service: 'backend-api',
-      version: '1.0.0',
-      error: 'Health check failed'
-    });
-  }
-});
-
-// Readiness check endpoint
-app.get('/api/health/ready', async (req, res) => {
-  try {
-    const { checkDatabaseHealth } = await import('./prisma/client');
-    const isReady = await checkDatabaseHealth();
-    
-    if (isReady) {
-      res.json({ status: 'ready', timestamp: new Date().toISOString() });
-    } else {
-      res.status(503).json({ status: 'not ready', timestamp: new Date().toISOString() });
-    }
-  } catch (error) {
-    res.status(503).json({ status: 'not ready', timestamp: new Date().toISOString(), error: 'Database not ready' });
-  }
-});
+// Legacy health endpoint for backward compatibility
+app.get('/health', getLiveness);
 
 // OpenAPI documentation endpoints
 app.get('/api/docs/openapi.json', serveOpenApiJson);
