@@ -27,7 +27,7 @@ services:
     cap_add:
       - IPC_LOCK
     ports:
-      - "9201:9201"
+      - "9201:9200"
     volumes:
       - elastic-data:/usr/share/elasticsearch/data
       - ./data/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
