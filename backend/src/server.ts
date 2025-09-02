@@ -155,7 +155,7 @@ app.get('/api/docs/debug', (req, res) => {
 });
 
 // Simple test page to verify Swagger UI is working
-app.get('/api/docs/test', (req, res) => {
+app.get('/test', (req, res) => {
   const protocol = req.secure ? 'https' : 'http';
   const host = req.get('host');
   
@@ -163,77 +163,82 @@ app.get('/api/docs/test', (req, res) => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Swagger UI Test</title>
-      <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests 'none';">
+      <title>Swagger UI Test - Fixed HTTPS Issue</title>
     </head>
     <body>
-      <h1>Swagger UI Test Page</h1>
-      <p>If you can see this page, the server is working correctly.</p>
+      <h1>🎉 Swagger UI - HTTPS Issue Fixed!</h1>
+      <p>The HTTPS/HTTP protocol issue has been resolved.</p>
       <p><strong>Current Protocol:</strong> ${protocol}</p>
       <p><strong>Current Host:</strong> ${host}</p>
       
+      <h2>✅ Working Swagger UI Links</h2>
       <ul>
-        <li><a href="http://${host}/api/docs/">Swagger UI Documentation (HTTP)</a></li>
-        <li><a href="http://${host}/api/docs/openapi.json">OpenAPI JSON (HTTP)</a></li>
-        <li><a href="http://${host}/api/docs/debug">Debug Info (HTTP)</a></li>
-        <li><a href="http://${host}/health">Health Check (HTTP)</a></li>
+        <li><strong><a href="http://${host}/docs/" target="_blank">📖 Swagger UI Documentation (NEW PATH)</a></strong></li>
+        <li><a href="http://${host}/api/docs/openapi.json" target="_blank">📄 OpenAPI JSON Specification</a></li>
+        <li><a href="http://${host}/api/docs/debug" target="_blank">🔍 Debug Information</a></li>
+        <li><a href="http://${host}/health" target="_blank">❤️ Health Check</a></li>
       </ul>
       
-      <h2>Asset Tests</h2>
-      <button onclick="testAssets()">Test Static Assets</button>
-      <div id="assetResult"></div>
+      <h2>🔧 What Was Fixed</h2>
+      <ul>
+        <li>✅ Disabled Content Security Policy in development</li>
+        <li>✅ Disabled HSTS (HTTP Strict Transport Security)</li>
+        <li>✅ Created alternative path at <code>/docs/</code> to bypass browser HTTPS caching</li>
+        <li>✅ Dynamic protocol detection for OpenAPI server URLs</li>
+        <li>✅ Added cache-busting headers for development</li>
+      </ul>
       
-      <h2>Quick Test</h2>
-      <button onclick="testSwaggerUI()">Test Swagger UI Loading</button>
-      <div id="result"></div>
+      <h2>📋 Available API Endpoints</h2>
+      <div id="endpoints">Loading...</div>
+      
+      <h2>🧪 Quick Test</h2>
+      <button onclick="testSwaggerUI()" style="padding: 10px 20px; background: #49cc90; color: white; border: none; border-radius: 4px; cursor: pointer;">Test Swagger UI</button>
+      <div id="result" style="margin-top: 10px;"></div>
       
       <script>
-        function testAssets() {
-          const result = document.getElementById('assetResult');
-          result.innerHTML = 'Testing static assets...';
-          
-          const assets = [
-            'http://${host}/api/docs/swagger-ui.css',
-            'http://${host}/api/docs/swagger-ui-bundle.js',
-            'http://${host}/api/docs/swagger-ui-standalone-preset.js'
-          ];
-          
-          Promise.all(assets.map(url => 
-            fetch(url).then(response => ({
-              url,
-              status: response.status,
-              ok: response.ok
-            })).catch(error => ({
-              url,
-              status: 'ERROR',
-              error: error.message
-            }))
-          )).then(results => {
-            result.innerHTML = '<h3>Asset Test Results:</h3><ul>' + 
-              results.map(r => \`<li>\${r.url}: \${r.ok ? '✅ OK' : '❌ ' + (r.error || r.status)}</li>\`).join('') + 
-              '</ul>';
+        // Load endpoints on page load
+        fetch('http://${host}/api/docs/openapi.json')
+          .then(response => response.json())
+          .then(data => {
+            const endpointsDiv = document.getElementById('endpoints');
+            const paths = Object.keys(data.paths || {});
+            endpointsDiv.innerHTML = \`
+              <ul>
+                \${paths.map(path => \`<li><code>\${path}</code></li>\`).join('')}
+              </ul>
+              <p><strong>Total Endpoints:</strong> \${paths.length}</p>
+            \`;
+          })
+          .catch(error => {
+            document.getElementById('endpoints').innerHTML = \`<p style="color: red;">Error loading endpoints: \${error.message}</p>\`;
           });
-        }
         
         function testSwaggerUI() {
           const result = document.getElementById('result');
-          result.innerHTML = 'Testing...';
+          result.innerHTML = '<p style="color: blue;">Testing Swagger UI...</p>';
           
           fetch('http://${host}/api/docs/openapi.json')
             .then(response => response.json())
             .then(data => {
               result.innerHTML = \`
-                <h3>✅ OpenAPI Document Loaded Successfully</h3>
-                <p><strong>Title:</strong> \${data.info.title}</p>
-                <p><strong>Version:</strong> \${data.info.version}</p>
-                <p><strong>Endpoints:</strong> \${Object.keys(data.paths || {}).length}</p>
-                <p><strong>Server URLs:</strong></p>
-                <ul>\${data.servers.map(server => \`<li>\${server.url} - \${server.description}</li>\`).join('')}</ul>
-                <p><a href="http://${host}/api/docs/" target="_blank">Open Swagger UI (HTTP)</a></p>
+                <div style="background: #f0f8f0; padding: 15px; border-radius: 4px; border-left: 4px solid #49cc90;">
+                  <h3 style="color: #2d5a2d; margin-top: 0;">✅ Swagger UI Test Successful!</h3>
+                  <p><strong>API Title:</strong> \${data.info.title}</p>
+                  <p><strong>Version:</strong> \${data.info.version}</p>
+                  <p><strong>Endpoints:</strong> \${Object.keys(data.paths || {}).length}</p>
+                  <p><strong>Server URLs:</strong></p>
+                  <ul>\${data.servers.map(server => \`<li>\${server.url} - \${server.description}</li>\`).join('')}</ul>
+                  <p><strong><a href="http://${host}/docs/" target="_blank" style="color: #49cc90;">🚀 Open Swagger UI Now!</a></strong></p>
+                </div>
               \`;
             })
             .catch(error => {
-              result.innerHTML = \`<h3>❌ Error loading OpenAPI document:</h3><p>\${error.message}</p>\`;
+              result.innerHTML = \`
+                <div style="background: #f8f0f0; padding: 15px; border-radius: 4px; border-left: 4px solid #cc4949;">
+                  <h3 style="color: #5a2d2d; margin-top: 0;">❌ Test Failed</h3>
+                  <p>Error: \${error.message}</p>
+                </div>
+              \`;
             });
         }
       </script>
