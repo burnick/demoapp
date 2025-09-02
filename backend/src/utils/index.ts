@@ -12,3 +12,6 @@ export * from './helpers';
 
 // Database utilities
 export * from './database';
+
+// Redis utilities
+export * from './redis';

@@ -8,6 +8,7 @@ import { connectDatabase } from './prisma/client';
 import { Logger } from './utils/logger';
 import { config, getServerConfig, getCORSConfig } from './utils/config';
 import { initializeRoutes, getRouteInfo } from './routes';
+import { cacheService } from './services/cacheService';
 
 // Load environment variables
 dotenv.config();
@@ -128,6 +129,11 @@ const startServer = async () => {
     // Connect to database
     await connectDatabase();
     
+    // Initialize cache service
+    Logger.info('Initializing cache service');
+    await cacheService.initialize();
+    Logger.info('Cache service initialized successfully');
+    
     // Initialize file-based routing system
     Logger.info('Initializing file-based routing system');
     const fileBasedRouter = await initializeRoutes();
@@ -168,15 +174,23 @@ const startServer = async () => {
 };
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  Logger.info('SIGTERM received, shutting down gracefully');
+const gracefulShutdown = async (signal: string) => {
+  Logger.info(`${signal} received, shutting down gracefully`);
+  
+  try {
+    // Close Redis connection
+    const { redisConnection } = await import('./utils/redis');
+    await redisConnection.disconnect();
+    Logger.info('Redis connection closed');
+  } catch (error) {
+    Logger.error('Error closing Redis connection:', error);
+  }
+  
   process.exit(0);
-});
+};
 
-process.on('SIGINT', () => {
-  Logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start the server
 startServer();
