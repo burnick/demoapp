@@ -126,8 +126,9 @@ class HealthService {
    */
   private async checkElasticsearchWithTimeout(): Promise<DependencyStatus> {
     const startTime = Date.now();
-    // Use the configured Elasticsearch-specific timeout
-    const timeout = config.ELASTICSEARCH_HEALTH_TIMEOUT;
+    // Use a longer timeout for Elasticsearch as it can be slower to respond
+    // Fallback to 30 seconds if config is not available
+    const timeout = config.ELASTICSEARCH_HEALTH_TIMEOUT || 30000;
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -135,7 +136,7 @@ class HealthService {
       });
 
       // Pass the timeout to the search service with a small buffer
-      const healthPromise = searchService.isHealthy(timeout - 1000); // Give 1 second buffer
+      const healthPromise = searchService.isHealthy(Math.max(timeout - 2000, 10000)); // Give 2 second buffer, minimum 10s
       const isHealthy = await Promise.race([healthPromise, timeoutPromise]);
       const responseTime = Date.now() - startTime;
 
@@ -149,7 +150,8 @@ class HealthService {
         error: error instanceof Error ? error.message : 'Unknown error',
         responseTime,
         timeout,
-        elasticsearchUrl: config.ELASTICSEARCH_URL
+        elasticsearchUrl: config.ELASTICSEARCH_URL,
+        configuredTimeout: config.ELASTICSEARCH_HEALTH_TIMEOUT
       });
       
       return {

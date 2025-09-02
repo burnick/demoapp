@@ -542,6 +542,9 @@ class SearchService {
    * Check if search service is healthy
    */
   async isHealthy(timeoutMs: number = 10000): Promise<boolean> {
+    const startTime = Date.now();
+    logger.debug('Starting Elasticsearch health check', { timeoutMs });
+    
     try {
       // First check if we have a client
       if (!this.client) {
@@ -550,6 +553,7 @@ class SearchService {
           await this.initialize();
           // If initialization still failed, return false
           if (!this.client) {
+            logger.debug('Search service initialization failed, client is null');
             return false;
           }
         } catch (initError) {
@@ -558,9 +562,18 @@ class SearchService {
         }
       }
       
-      return await elasticsearchConnection.ping(timeoutMs);
+      const result = await elasticsearchConnection.ping(timeoutMs);
+      const responseTime = Date.now() - startTime;
+      logger.debug('Elasticsearch health check completed', { result, responseTime, timeoutMs });
+      
+      return result;
     } catch (error) {
-      logger.error('Search service health check failed:', error);
+      const responseTime = Date.now() - startTime;
+      logger.error('Search service health check failed:', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+        timeoutMs
+      });
       return false;
     }
   }
