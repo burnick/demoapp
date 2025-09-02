@@ -1,24 +1,35 @@
 import { PrismaClient, User } from '@prisma/client';
-import { testPrisma } from './setup';
+import { testPrisma, initializeTestDatabase } from './setup';
 import bcrypt from 'bcryptjs';
 
 /**
  * Test data factory for creating test users
  */
 export class TestDataFactory {
-  private static prisma: PrismaClient = testPrisma;
+  private static prisma: PrismaClient;
+
+  private static async getPrisma(): Promise<PrismaClient> {
+    if (!this.prisma) {
+      if (!testPrisma) {
+        await initializeTestDatabase();
+      }
+      this.prisma = testPrisma;
+    }
+    return this.prisma;
+  }
 
   /**
    * Create a test user with default or custom data
    */
   static async createUser(overrides: Partial<User> = {}): Promise<User> {
+    const prisma = await this.getPrisma();
     const defaultUser = {
       email: `test-${Date.now()}@example.com`,
       name: 'Test User',
       password: await bcrypt.hash('password123', 12),
     };
 
-    return this.prisma.user.create({
+    return prisma.user.create({
       data: {
         ...defaultUser,
         ...overrides,
@@ -48,7 +59,8 @@ export class TestDataFactory {
    * Clean all test data
    */
   static async cleanup(): Promise<void> {
-    await this.prisma.user.deleteMany({});
+    const prisma = await this.getPrisma();
+    await prisma.user.deleteMany({});
   }
 }
 

@@ -66,6 +66,69 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Detailed health check endpoint with service dependencies
+app.get('/api/health', async (req, res) => {
+  try {
+    const { getDatabaseStatus } = await import('./utils/database');
+    const { cacheService } = await import('./services/cacheService');
+    const { searchService } = await import('./services/searchService');
+
+    const [dbStatus, cacheHealthy, searchHealthy] = await Promise.allSettled([
+      getDatabaseStatus(),
+      cacheService.isHealthy(),
+      searchService.isHealthy()
+    ]);
+
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'backend-api',
+      version: '1.0.0',
+      dependencies: {
+        database: dbStatus.status === 'fulfilled' ? dbStatus.value : { status: 'unhealthy', error: 'Connection failed' },
+        cache: cacheHealthy.status === 'fulfilled' ? { status: cacheHealthy.value ? 'healthy' : 'unhealthy' } : { status: 'unhealthy', error: 'Connection failed' },
+        search: searchHealthy.status === 'fulfilled' ? { status: searchHealthy.value ? 'healthy' : 'unhealthy' } : { status: 'unhealthy', error: 'Connection failed' }
+      }
+    };
+
+    // Determine overall health status
+    const allHealthy = 
+      (dbStatus.status === 'fulfilled' && dbStatus.value.status === 'healthy') &&
+      (cacheHealthy.status === 'fulfilled' && cacheHealthy.value) &&
+      (searchHealthy.status === 'fulfilled' && searchHealthy.value);
+
+    if (!allHealthy) {
+      health.status = 'degraded';
+    }
+
+    res.status(allHealthy ? 200 : 503).json(health);
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      service: 'backend-api',
+      version: '1.0.0',
+      error: 'Health check failed'
+    });
+  }
+});
+
+// Readiness check endpoint
+app.get('/api/health/ready', async (req, res) => {
+  try {
+    const { checkDatabaseHealth } = await import('./prisma/client');
+    const isReady = await checkDatabaseHealth();
+    
+    if (isReady) {
+      res.json({ status: 'ready', timestamp: new Date().toISOString() });
+    } else {
+      res.status(503).json({ status: 'not ready', timestamp: new Date().toISOString() });
+    }
+  } catch (error) {
+    res.status(503).json({ status: 'not ready', timestamp: new Date().toISOString(), error: 'Database not ready' });
+  }
+});
+
 // OpenAPI documentation endpoints
 app.get('/api/docs/openapi.json', serveOpenApiJson);
 app.get('/api/docs/stats', serveOpenApiStats);

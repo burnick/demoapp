@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      target: builder
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    command: npm run dev
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Debug port
+    
+  db:
+    environment:
+      - POSTGRES_DB=${DB_NAME:-backend_dev}
+    
+  # Override for development - expose more ports for debugging
+  redis:
+    ports:
+      - "6379:6379"
+      
+  elasticsearch:
+    ports:
+      - "9200:9200"
+      - "9300:9300"

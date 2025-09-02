@@ -46,84 +46,66 @@ services:
       '
   db:
     container_name: postgres
-    image: postgres:latest #15
+    image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=${DB_USERNAME}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - PGDATA=/data/postgres
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
+      - POSTGRES_DB=${DB_NAME:-backend_db}
+      - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
-      - pgdata:/var/lib/postgresql/data # Use a named volume
-      - ./pginit:/docker-entrypoint-initdb.d
-      - ./data/postgresql.conf:/etc/postgresql/postgresql.conf
-      - ./data/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - pgdata:/var/lib/postgresql/data
+      - ./data/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./data/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
     ports:
       - "5432:5432"
     networks:
-      - default
+      - app-network
     restart: unless-stopped
     healthcheck:
-      test: >
-        /bin/sh -c '
-        pg_isready -U ${DB_USERNAME:-postgres}'
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-backend_db}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     command: >
       postgres
       -c "listen_addresses=*"
       -c "max_connections=100"
-      -c "shared_buffers=128MB"  
-      -c config_file=/etc/postgresql/postgresql.conf
-      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c "shared_buffers=128MB"
 
   backend:
     container_name: backend
     ports:
-      - 3000:3000
-    volumes:
-      - ${BACKEND_PATH}:/opt/app
-      - /opt/app/node_modules/
-    working_dir: /opt/app
+      - "3000:3000"
     depends_on:
+      db:
+        condition: service_healthy
       elasticsearch:
         condition: service_started
-      # postgres:
-      #   condition: service_healthy
       redis:
         condition: service_started
     environment:
-      - ENVIRONMENT=development
-      - NODE_ENV=development
-      - LOG_LEVEL=debug
-      - REDIS_URL=redis
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
-      - ELASTICSEARCH_URL=elasticsearch
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - JWT_EXPIRES_IN=7d
+      - NODE_ENV=${NODE_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-password}@db:5432/${DB_NAME:-backend_db}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - PORT=3000
     build:
-      context: ${BACKEND_PATH}
-      dockerfile: development.Dockerfile
-      args:
-        NPM_TOKEN: $NPM_TOKEN
-    tty: true
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
     networks:
       - app-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/api/health",
-        ]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 160s
-    #command: sh -c "npx prisma generate &&  npx prisma migrate dev --name init && npm run db-seed && npm run dev"
-    command: "npm run dev"
+      start_period: 40s
+    restart: unless-stopped
   # frontend:
   # container_name: frontend
   # build:
