@@ -3,6 +3,7 @@ services:
     build:
       context: ./backend
       dockerfile: development.Dockerfile
+      # No target specified - uses the single stage in development.Dockerfile
     volumes:
       - ./backend:/app
       - /app/node_modules
