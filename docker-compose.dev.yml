@@ -3,7 +3,8 @@ version: '3.8'
 services:
   backend:
     build:
-      target: builder
+      context: ./backend
+      dockerfile: development.Dockerfile
     volumes:
       - ./backend:/app
       - /app/node_modules

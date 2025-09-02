@@ -125,6 +125,18 @@ npm run db:seed
 npm run db:studio
 ```
 
+### Building Images
+```bash
+# Build development image
+cd backend && npm run docker:build:dev
+
+# Build production image
+cd backend && npm run docker:build:prod
+
+# Build using docker-compose
+npm run build
+```
+
 ### Maintenance
 ```bash
 # Rebuild backend service
@@ -142,12 +154,21 @@ npm run clean
 - `docker-compose.yml`: Base configuration for all environments
 - `docker-compose.dev.yml`: Development overrides (hot reload, debug ports)
 
-## Multi-stage Dockerfile
+## Dockerfiles
 
-The backend uses a multi-stage Dockerfile:
+The backend includes two Dockerfiles optimized for different use cases:
 
+### Production Dockerfile (`backend/Dockerfile`)
+Multi-stage build for production:
 1. **Builder Stage**: Installs dependencies and builds the application
 2. **Production Stage**: Creates optimized runtime image with only production dependencies
+
+### Development Dockerfile (`backend/development.Dockerfile`)
+Single-stage build optimized for development:
+- Includes development tools (git, curl, bash)
+- Installs all dependencies including dev dependencies
+- Optimized for hot reloading and development workflow
+- Exposes debug port (9229) for Node.js debugging
 
 ## Health Checks
 

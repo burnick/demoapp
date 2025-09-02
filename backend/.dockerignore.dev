@@ -1,0 +1,66 @@
+# Development Docker ignore - more permissive than production
+
+# Dependencies (will be installed in container)
+node_modules
+npm-debug.log*
+
+# Build outputs (not needed for development)
+dist
+build
+
+# Environment files (handled by docker-compose)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Temporary folders
+tmp/
+temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files
+Dockerfile
+development.Dockerfile
+.dockerignore
+.dockerignore.dev
+
+# Git
+.git
+.gitignore
+
+# IDE files (keep for development)
+# .vscode/
+# .idea/

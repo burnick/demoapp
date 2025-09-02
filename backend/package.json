@@ -32,6 +32,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "docker:build": "docker build -t backend-api .",
+    "docker:build:dev": "docker build -f development.Dockerfile -t backend-api:dev .",
     "docker:build:prod": "docker build --target production -t backend-api:latest .",
     "docker:run": "docker run -p 3000:3000 backend-api",
     "docker:run:prod": "docker run -p 3000:3000 --env-file .env backend-api:latest",

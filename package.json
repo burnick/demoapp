@@ -19,7 +19,8 @@
     "db:migrate": "docker-compose exec backend npm run db:migrate",
     "db:seed": "docker-compose exec backend npm run db:seed",
     "db:studio": "docker-compose exec backend npm run db:studio",
-    "validate": "./scripts/docker-validate.sh"
+    "validate": "./scripts/docker-validate.sh",
+    "setup": "./scripts/docker-setup.sh"
   },
   "keywords": [
     "docker",

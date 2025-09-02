@@ -10,14 +10,15 @@ Modern backend API system using Node.js, TypeScript, tRPC, Zod, and Prisma with 
 
 ### Development Setup
 
-1. **Validate Docker setup:**
+1. **Quick setup (recommended):**
    ```bash
-   npm run validate
+   npm run setup
    ```
 
-2. **Start development environment:**
+2. **Manual setup:**
    ```bash
-   npm run dev
+   npm run validate  # Validate Docker setup
+   npm run dev       # Start development environment
    ```
 
 3. **View logs:**
