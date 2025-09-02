@@ -11,3 +11,4 @@ export {
   type DependencyStatus, 
   type ReadinessStatus 
 } from './healthService';
+export { oauthService, OAuthService } from './oauthService';

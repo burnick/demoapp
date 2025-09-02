@@ -1,6 +1,7 @@
 import { router as trpcRouter } from '../../trpc/router';
 import { router as userRouter } from './users';
 import { router as authRouter } from './auth';
+import { router as thirdPartyOAuthRouter } from './thirdPartyOAuth';
 
 /**
  * Combined v1 router with all v1 endpoints
@@ -8,6 +9,7 @@ import { router as authRouter } from './auth';
 export const v1Router = trpcRouter({
   users: userRouter,
   auth: authRouter,
+  thirdPartyOAuth: thirdPartyOAuthRouter,
 });
 
 // Export the router
