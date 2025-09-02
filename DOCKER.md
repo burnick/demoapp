@@ -169,6 +169,7 @@ Single-stage build optimized for development:
 - Installs all dependencies including dev dependencies
 - Optimized for hot reloading and development workflow
 - Exposes debug port (9229) for Node.js debugging
+- Runs as root user to avoid volume mount permission issues (development only)
 
 ## Health Checks
 
@@ -209,6 +210,19 @@ Another service is using the same port.
 # Stop conflicting services
 docker compose down
 # Or modify port mappings in docker-compose.yml
+```
+
+#### Build hangs on "RUN chown" or permission commands
+This can happen when Docker tries to change ownership of large directories or mounted volumes.
+
+**Solution:**
+```bash
+# Stop the hanging build (Ctrl+C)
+docker compose down
+# Clean up any partial builds
+docker system prune -f
+# Try building again
+npm run dev
 ```
 
 ### Port Conflicts

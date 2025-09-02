@@ -22,15 +22,9 @@ RUN npm ci
 # Generate Prisma client
 RUN npx prisma generate
 
-# Create app user for security (but with more permissive setup for development)
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S backend -u 1001 -G nodejs
-
-# Change ownership to app user
-RUN chown -R backend:nodejs /app
-
-# Switch to app user
-USER backend
+# For development, we'll run as root to avoid permission issues with volume mounts
+# This is acceptable for local development environments
+# Production Dockerfile uses non-root user for security
 
 # Expose port and debug port
 EXPOSE 3000 9229
