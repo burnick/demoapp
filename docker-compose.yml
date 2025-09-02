@@ -1,0 +1,150 @@
+services:
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    sysctls:
+      net.core.somaxconn: 1024
+      vm.overcommit_memory: 1  
+  elasticsearch:
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.3
+    user: "1000:0" # Run as UID 1000 with root group
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+      - ./data/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./data/elasticsearch/.aws/config:/usr/share/elasticsearch/.aws/config
+    networks:
+      - app-network
+    entrypoint: |
+      /bin/sh -c '
+      mkdir -p /usr/share/elasticsearch/.aws;
+      chown -R 1000:0 /usr/share/elasticsearch/.aws;
+      chmod -R 750 /usr/share/elasticsearch/.aws;
+      chown -R 1000:0 /usr/share/elasticsearch/config;
+      chmod -R 775 /usr/share/elasticsearch/config;
+      /usr/local/bin/docker-entrypoint.sh
+      '  
+  db:
+    container_name: postgres
+    image: postgres:latest #15
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/data/postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./pginit:/docker-entrypoint-initdb.d
+      - ./data/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./data/pg_hba.conf:/etc/postgresql/pg_hba.conf
+    ports:
+      - "5432:5432"
+    networks:
+      - default  
+    restart: unless-stopped
+    healthcheck:
+      test: >
+        /bin/sh -c '
+        pg_isready -U ${DB_USERNAME:-postgres}'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres
+      -c "listen_addresses=*"
+      -c "max_connections=100"
+      -c "shared_buffers=128MB"  
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+
+  # backend:
+  #   container_name: backend
+  #   ports:
+  #     - 3000:3000
+  #   volumes:
+  #     - ${BACKEND_PATH}:/opt/app
+  #     - /opt/app/node_modules/
+  #   working_dir: /opt/app
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_started
+  #     # postgres:
+  #     #   condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   environment:
+  #     - ENVIRONMENT=development
+  #     - NODE_ENV=development
+  #     - LOG_LEVEL=debug
+  #     - REDIS_URL=redis
+  #     #- DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+  #     - ELASTIC_URL=elastic
+  #   build:
+  #     context: ${BACKEND_PATH}
+  #     dockerfile: development.Dockerfile
+  #     args:
+  #       NPM_TOKEN: $NPM_TOKEN
+  #   tty: true
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health" ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 160s
+  #   #command: sh -c "npx prisma generate &&  npx prisma migrate dev --name init && npm run db-seed && npm run dev"
+  #   command: "npm run dev"
+  # frontend:
+    # container_name: frontend
+    # build:
+    #   context: ${FRONTEND_PATH}
+    #   dockerfile: development.Dockerfile
+    # ports:
+    #   - "5173:3001"
+    # volumes:
+    #   - ${FRONTEND_PATH}:/app
+    #   - /app/node_modules
+    #   - /app/.next  
+    # healthcheck:
+    #   test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/healthcheck" ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 160s  
+    # environment:
+    #   - NODE_ENV=development
+    #   - API_URL=api  
+    # networks:
+    #   - app-network
+    # command: npm run dev
+    # depends_on:
+    #   api:
+    #     condition: service_healthy  
+volumes:
+  redis-data:
+  elastic-data:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
