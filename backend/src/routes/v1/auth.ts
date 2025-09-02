@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router as trpcRouter, baseProcedure, protectedProcedure } from '../../trpc/router';
+import { router as trpcRouter, openApiBaseProcedure, openApiProtectedProcedure } from '../../trpc/router';
 import { createOpenApiMeta } from '../../utils/openapi';
 import { AuthController } from '../../controllers/authController';
 import { 
@@ -17,7 +17,7 @@ import { ApiResponseSchema } from '../../schemas/common';
  */
 export const authRouter = trpcRouter({
   // User registration
-  register: baseProcedure
+  register: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/register',
@@ -60,7 +60,7 @@ export const authRouter = trpcRouter({
     }),
 
   // User login
-  login: baseProcedure
+  login: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/login',
@@ -103,7 +103,7 @@ export const authRouter = trpcRouter({
     }),
 
   // Refresh access token
-  refreshToken: baseProcedure
+  refreshToken: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/refresh',
@@ -132,7 +132,7 @@ export const authRouter = trpcRouter({
     }),
 
   // User logout (protected)
-  logout: protectedProcedure
+  logout: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/logout',
@@ -159,7 +159,7 @@ export const authRouter = trpcRouter({
     }),
 
   // Change password (protected)
-  changePassword: protectedProcedure
+  changePassword: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'PUT',
       path: '/v1/auth/password',
@@ -187,7 +187,7 @@ export const authRouter = trpcRouter({
     }),
 
   // Forgot password
-  forgotPassword: baseProcedure
+  forgotPassword: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/forgot-password',
@@ -214,7 +214,7 @@ export const authRouter = trpcRouter({
     }),
 
   // Reset password
-  resetPassword: baseProcedure
+  resetPassword: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/reset-password',
@@ -241,7 +241,7 @@ export const authRouter = trpcRouter({
     }),
 
   // Verify email token
-  verifyEmail: baseProcedure
+  verifyEmail: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/auth/verify-email',
@@ -270,7 +270,7 @@ export const authRouter = trpcRouter({
     }),
 
   // Get current session info (protected)
-  getSession: protectedProcedure
+  getSession: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/auth/session',

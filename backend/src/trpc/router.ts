@@ -265,7 +265,7 @@ export const openApiProtectedProcedure = openApiBaseProcedure.use(authMiddleware
 export const createAppRouter = (fileBasedRouter?: any) => {
   const baseRoutes = {
     // Health check procedure
-    health: baseProcedure
+    health: openApiBaseProcedure
       .meta(createOpenApiMeta({
         method: 'GET',
         path: '/health',

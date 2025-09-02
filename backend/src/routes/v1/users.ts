@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router as trpcRouter, baseProcedure, protectedProcedure } from '../../trpc/router';
+import { router as trpcRouter, openApiBaseProcedure, openApiProtectedProcedure } from '../../trpc/router';
 import { createOpenApiMeta } from '../../utils/openapi';
 import { UserController } from '../../controllers/userController';
 import { 
@@ -22,7 +22,7 @@ import { PaginationSchema, ApiResponseSchema } from '../../schemas/common';
  */
 export const userRouter = trpcRouter({
   // Get all users with pagination
-  getUsers: baseProcedure
+  getUsers: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/users',
@@ -56,7 +56,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Get user by ID
-  getUserById: baseProcedure
+  getUserById: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/users/{id}',
@@ -79,7 +79,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Create new user (protected)
-  createUser: protectedProcedure
+  createUser: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/users',
@@ -101,7 +101,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Update user (protected)
-  updateUser: protectedProcedure
+  updateUser: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'PUT',
       path: '/v1/users/{id}',
@@ -126,7 +126,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Delete user (protected)
-  deleteUser: protectedProcedure
+  deleteUser: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'DELETE',
       path: '/v1/users/{id}',
@@ -156,7 +156,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Get current user profile (protected)
-  getProfile: protectedProcedure
+  getProfile: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/users/profile',
@@ -177,7 +177,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Update current user profile (protected)
-  updateProfile: protectedProcedure
+  updateProfile: openApiProtectedProcedure
     .meta(createOpenApiMeta({
       method: 'PUT',
       path: '/v1/users/profile',
@@ -199,7 +199,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Search users with text query
-  searchUsers: baseProcedure
+  searchUsers: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/users/search',
@@ -220,7 +220,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Advanced search users with filters
-  advancedSearchUsers: baseProcedure
+  advancedSearchUsers: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/users/search/advanced',
@@ -241,7 +241,7 @@ export const userRouter = trpcRouter({
     }),
 
   // Get user search suggestions
-  getUserSuggestions: baseProcedure
+  getUserSuggestions: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/users/suggestions',

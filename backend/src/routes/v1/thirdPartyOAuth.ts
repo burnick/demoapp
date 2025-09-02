@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router as trpcRouter, baseProcedure } from '../../trpc/router';
+import { router as trpcRouter, openApiBaseProcedure } from '../../trpc/router';
 import { createOpenApiMeta } from '../../utils/openapi';
 import { ApiResponseSchema } from '../../schemas/common';
 import { oauthService } from '../../services/oauthService';
@@ -12,7 +12,7 @@ import { ValidationError } from '../../utils/errors';
 
 export const thirdPartyOAuthRouter = trpcRouter({
   // Get available OAuth providers
-  getProviders: baseProcedure
+  getProviders: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/oauth/providers',
@@ -38,7 +38,7 @@ export const thirdPartyOAuthRouter = trpcRouter({
     }),
 
   // Get authorization URL for a provider
-  getAuthUrl: baseProcedure
+  getAuthUrl: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/oauth/{provider}/auth',
@@ -72,7 +72,7 @@ export const thirdPartyOAuthRouter = trpcRouter({
     }),
 
   // Handle OAuth callback
-  handleCallback: baseProcedure
+  handleCallback: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'POST',
       path: '/v1/oauth/{provider}/callback',
@@ -112,7 +112,7 @@ export const thirdPartyOAuthRouter = trpcRouter({
     }),
 
   // Get OAuth service status (for debugging/monitoring)
-  getStatus: baseProcedure
+  getStatus: openApiBaseProcedure
     .meta(createOpenApiMeta({
       method: 'GET',
       path: '/v1/oauth/status',
