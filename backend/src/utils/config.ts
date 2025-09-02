@@ -48,6 +48,7 @@ const configSchema = z.object({
   
   // Health check configuration
   HEALTH_CHECK_TIMEOUT: z.string().transform(Number).pipe(z.number().positive()).default('5000'),
+  ELASTICSEARCH_HEALTH_TIMEOUT: z.string().transform(Number).pipe(z.number().positive()).default('15000'),
 });
 
 // Parse and validate environment variables
@@ -133,4 +134,5 @@ export const getLoggingConfig = () => ({
 // Health check configuration helpers
 export const getHealthCheckConfig = () => ({
   timeout: config.HEALTH_CHECK_TIMEOUT,
+  elasticsearchTimeout: config.ELASTICSEARCH_HEALTH_TIMEOUT,
 });

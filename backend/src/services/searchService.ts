@@ -533,9 +533,9 @@ class SearchService {
   /**
    * Check if search service is healthy
    */
-  async isHealthy(): Promise<boolean> {
+  async isHealthy(timeoutMs: number = 10000): Promise<boolean> {
     try {
-      return await elasticsearchConnection.ping();
+      return await elasticsearchConnection.ping(timeoutMs);
     } catch (error) {
       logger.error('Search service health check failed:', error);
       return false;

@@ -23,6 +23,10 @@ class ElasticsearchConnection {
 
       const clientConfig: any = {
         node: config.url,
+        requestTimeout: 30000, // 30 second timeout for requests
+        pingTimeout: 10000,    // 10 second timeout for ping
+        maxRetries: 3,         // Retry failed requests up to 3 times
+        resurrectStrategy: 'ping', // Use ping to check if nodes are alive
       };
 
       // Add authentication if provided
@@ -35,8 +39,10 @@ class ElasticsearchConnection {
 
       this.client = new Client(clientConfig);
 
-      // Test the connection
-      await this.client.ping();
+      // Test the connection with a reasonable timeout
+      await this.client.ping({}, {
+        requestTimeout: 10000,
+      });
       this.isConnected = true;
 
       logger.info('Elasticsearch connection established successfully', {
@@ -64,13 +70,25 @@ class ElasticsearchConnection {
   /**
    * Check if Elasticsearch is connected and healthy
    */
-  async ping(): Promise<boolean> {
+  async ping(timeoutMs: number = 10000): Promise<boolean> {
     try {
       if (!this.client) {
         return false;
       }
       
-      await this.client.ping();
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Elasticsearch ping timeout')), timeoutMs);
+      });
+      
+      // Race between ping and timeout
+      await Promise.race([
+        this.client.ping({}, {
+          requestTimeout: timeoutMs,
+        }),
+        timeoutPromise
+      ]);
+      
       return true;
     } catch (error) {
       logger.error('Elasticsearch ping failed:', error);

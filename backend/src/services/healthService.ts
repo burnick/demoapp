@@ -126,14 +126,16 @@ class HealthService {
    */
   private async checkElasticsearchWithTimeout(): Promise<DependencyStatus> {
     const startTime = Date.now();
-    const timeout = config.HEALTH_CHECK_TIMEOUT;
+    // Use the configured Elasticsearch-specific timeout
+    const timeout = config.ELASTICSEARCH_HEALTH_TIMEOUT;
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Elasticsearch health check timeout')), timeout);
       });
 
-      const healthPromise = searchService.isHealthy();
+      // Pass the timeout to the search service with a small buffer
+      const healthPromise = searchService.isHealthy(timeout - 1000); // Give 1 second buffer
       const isHealthy = await Promise.race([healthPromise, timeoutPromise]);
       const responseTime = Date.now() - startTime;
 
@@ -143,7 +145,12 @@ class HealthService {
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      logger.error('Elasticsearch health check failed', { error, responseTime });
+      logger.error('Elasticsearch health check failed', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+        timeout,
+        elasticsearchUrl: config.ELASTICSEARCH_URL
+      });
       
       return {
         status: 'unhealthy',
@@ -168,22 +175,21 @@ class HealthService {
       ]);
 
       // Determine overall health status
+      // Database is critical, cache and search are optional
+      const criticalHealthy = databaseStatus.status === 'healthy';
       const allHealthy = 
         databaseStatus.status === 'healthy' &&
         cacheStatus.status === 'healthy' &&
         searchStatus.status === 'healthy';
 
-      const anyHealthy = 
-        databaseStatus.status === 'healthy' ||
-        cacheStatus.status === 'healthy' ||
-        searchStatus.status === 'healthy';
-
       let overallStatus: 'healthy' | 'unhealthy' | 'degraded';
       if (allHealthy) {
         overallStatus = 'healthy';
-      } else if (anyHealthy) {
+      } else if (criticalHealthy) {
+        // If database is healthy but cache/search are not, we're degraded but operational
         overallStatus = 'degraded';
       } else {
+        // If database is unhealthy, we're unhealthy
         overallStatus = 'unhealthy';
       }
 
