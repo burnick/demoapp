@@ -1,4 +1,4 @@
-# Third-Party OAuth Authentication
+git # Third-Party OAuth Authentication
 
 This document describes the third-party OAuth authentication system that supports Google and Facebook login.
 
@@ -215,4 +215,4 @@ GET /api/v1/thirdPartyOAuth/getStatus
 This returns information about:
 - Service initialization status
 - Enabled providers
-- State store size (for debugging)
+- State store size (for debugging
