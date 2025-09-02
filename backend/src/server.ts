@@ -99,7 +99,12 @@ app.delete('/api/docs/cache', clearOpenApiCache);
 
 // Swagger UI documentation
 app.use('/api/docs', swaggerUi.serve);
-app.get('/api/docs', ...createSwaggerMiddleware());
+app.get('/api/docs/', createSwaggerMiddleware());
+
+// Redirect /api/docs to /api/docs/ (with trailing slash)
+app.get('/api/docs', (req, res) => {
+  res.redirect(301, '/api/docs/');
+});
 
 // Redirect /docs to /api/docs for convenience
 app.get('/docs', (req, res) => {

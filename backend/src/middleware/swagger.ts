@@ -97,17 +97,42 @@ export const generateOpenApiDocument = (req: Request, res: Response, next: NextF
  * Create Swagger UI middleware with dynamic document generation
  */
 export const createSwaggerMiddleware = () => {
-  return [
-    generateOpenApiDocument,
-    (req: Request, res: Response, next: NextFunction) => {
-      // Use the generated document from the previous middleware
-      const document = (req as any).swaggerDoc;
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const router = getCurrentRouter();
+      const document = openApiService.generateDocument(router);
+      
+      Logger.debug('Serving Swagger UI with document', {
+        paths: Object.keys(document.paths || {}).length,
+        version: document.info.version,
+      });
       
       // Create Swagger UI middleware with the document
       const swaggerMiddleware = swaggerUi.setup(document, swaggerOptions);
       swaggerMiddleware(req, res, next);
-    },
-  ];
+    } catch (error) {
+      Logger.error('Failed to create Swagger UI middleware', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
+      // Fallback to basic document
+      const config = getOpenAPIConfig();
+      const fallbackDoc = {
+        openapi: '3.0.3',
+        info: {
+          title: config.title,
+          version: config.version,
+          description: 'API documentation is temporarily unavailable',
+        },
+        servers: config.servers,
+        paths: {},
+      };
+      
+      const swaggerMiddleware = swaggerUi.setup(fallbackDoc, swaggerOptions);
+      swaggerMiddleware(req, res, next);
+    }
+  };
 };
 
 /**
