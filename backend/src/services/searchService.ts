@@ -566,11 +566,16 @@ class SearchService {
       // Try to ping using the elasticsearch connection with a shorter timeout
       const pingPromise = elasticsearchConnection.ping(timeoutMs - 100)
         .then(result => {
-          logger.debug('Elasticsearch ping result', { result });
+          logger.debug('Elasticsearch ping result', { result, url: config.url });
           return result;
         })
         .catch(error => {
-          logger.debug('Elasticsearch ping failed', { error: error.message });
+          logger.debug('Elasticsearch ping failed', { 
+            error: error.message, 
+            url: config.url,
+            errorCode: error.code,
+            errorType: error.constructor.name
+          });
           return false;
         });
 

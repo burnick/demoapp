@@ -99,7 +99,14 @@ class ElasticsearchConnection {
       
       return true;
     } catch (error) {
-      logger.error('Elasticsearch ping failed:', error);
+      const errorInfo = {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: (error as any)?.code,
+        type: error?.constructor?.name,
+        url: this.client ? 'client-available' : 'client-null'
+      };
+      
+      logger.error('Elasticsearch ping failed:', errorInfo);
       return false;
     }
   }
