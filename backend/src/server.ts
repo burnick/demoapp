@@ -49,6 +49,12 @@ app.use(helmet({
       frameSrc: ["'self'"],
     },
   },
+  // Disable HSTS in development to prevent HTTPS enforcement
+  hsts: process.env.NODE_ENV === 'production' ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  } : false,
 }));
 app.use(cors({
   origin: corsConfig.origin,
@@ -97,8 +103,28 @@ app.get('/api/docs/openapi.json', serveOpenApiJson);
 app.get('/api/docs/stats', serveOpenApiStats);
 app.delete('/api/docs/cache', clearOpenApiCache);
 
-// Swagger UI documentation
-app.use('/api/docs', swaggerUi.serve);
+// Swagger UI static assets middleware with protocol handling
+app.use('/api/docs', (req, res, next) => {
+  // Force HTTP protocol for static assets in development
+  if (process.env.NODE_ENV !== 'production' && req.secure) {
+    const httpUrl = `http://${req.get('host')}${req.originalUrl}`;
+    Logger.debug('Redirecting HTTPS Swagger request to HTTP', {
+      originalUrl: req.originalUrl,
+      redirectTo: httpUrl,
+    });
+    return res.redirect(301, httpUrl);
+  }
+  
+  // Add cache-busting headers for development
+  if (process.env.NODE_ENV !== 'production') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  
+  next();
+}, swaggerUi.serve);
+
 app.get('/api/docs/', createSwaggerMiddleware());
 
 // Redirect /api/docs to /api/docs/ (with trailing slash)
