@@ -58,7 +58,50 @@ Modern backend API system using Node.js, TypeScript, tRPC, Zod, and Prisma with 
    npm run prod
    ```
 
+## Third-Party OAuth Integration
+
+The backend includes comprehensive OAuth integration for Google and Facebook authentication:
+
+### Available OAuth Endpoints
+
+- `GET /v1.thirdPartyOAuth.getProviders` - Get list of available OAuth providers
+- `POST /v1.thirdPartyOAuth.getAuthUrl` - Generate OAuth authorization URL
+- `POST /v1.thirdPartyOAuth.handleCallback` - Handle OAuth callback and authenticate user
+- `GET /v1.thirdPartyOAuth.getStatus` - Get OAuth service status (for debugging)
+
+### OAuth Provider Setup
+
+#### Google OAuth Setup
+1. Visit [Google Cloud Console](https://console.developers.google.com/)
+2. Create a new project or select existing one
+3. Enable Google+ API and Google OAuth2 API
+4. Create OAuth 2.0 credentials (Web application)
+5. Set authorized redirect URI: `http://localhost:3000/auth/google/callback`
+6. Copy Client ID and Client Secret to your `.env` file
+
+#### Facebook OAuth Setup
+1. Visit [Facebook Developers](https://developers.facebook.com/)
+2. Create a new app or select existing one
+3. Add Facebook Login product
+4. Configure OAuth redirect URI: `http://localhost:3000/auth/facebook/callback`
+5. Copy App ID and App Secret to your `.env` file
+
+### OAuth Flow
+1. Client requests available providers from `/v1.thirdPartyOAuth.getProviders`
+2. Client gets authorization URL from `/v1.thirdPartyOAuth.getAuthUrl`
+3. User is redirected to OAuth provider (Google/Facebook)
+4. Provider redirects back with authorization code
+5. Client sends code to `/v1.thirdPartyOAuth.handleCallback`
+6. Backend exchanges code for user info and returns JWT tokens
+
 ## API Endpoints
+
+### Third-Party OAuth Endpoints
+
+- `GET /trpc/v1.thirdPartyOAuth.getProviders` - Get available OAuth providers (Google, Facebook)
+- `POST /trpc/v1.thirdPartyOAuth.getAuthUrl` - Generate OAuth authorization URL for specified provider
+- `POST /trpc/v1.thirdPartyOAuth.handleCallback` - Handle OAuth callback and authenticate user
+- `GET /trpc/v1.thirdPartyOAuth.getStatus` - Get OAuth service status and configuration
 
 ### Authentication Endpoints
 
@@ -260,6 +303,15 @@ JWT_EXPIRES_IN=7d
 NODE_ENV=production
 LOG_LEVEL=info
 PORT=3000
+
+# OAuth Configuration (Required for third-party authentication)
+# Google OAuth - Get from https://console.developers.google.com/
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Facebook OAuth - Get from https://developers.facebook.com/
+FACEBOOK_CLIENT_ID=your_facebook_app_id
+FACEBOOK_CLIENT_SECRET=your_facebook_app_secret
 ```
 
 ### Optional Environment Variables
@@ -269,6 +321,14 @@ PORT=3000
 REDIS_URL=redis://redis:6379
 DATABASE_URL=postgresql://postgres:password@db:5432/backend_db
 ELASTICSEARCH_URL=http://elasticsearch:9201
+
+# OAuth Redirect URLs (optional - defaults provided)
+GOOGLE_REDIRECT_URI=http://localhost:3000/auth/google/callback
+FACEBOOK_REDIRECT_URI=http://localhost:3000/auth/facebook/callback
+
+# OAuth Scopes (optional - defaults provided)
+GOOGLE_SCOPES=openid,profile,email
+FACEBOOK_SCOPES=email,public_profile
 
 # API Configuration
 API_PREFIX=/api

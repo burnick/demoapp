@@ -228,6 +228,50 @@ Once the server is running, comprehensive API documentation is available:
 
 ## Environment Configuration
 
+### OAuth Provider Setup
+
+The backend supports third-party OAuth authentication with Google and Facebook. You'll need to set up OAuth applications with each provider:
+
+#### Google OAuth Setup
+
+1. **Go to Google Cloud Console**: https://console.developers.google.com/
+2. **Create a new project** or select an existing one
+3. **Enable the Google+ API** and **Google OAuth2 API**
+4. **Create OAuth 2.0 credentials**:
+   - Application type: Web application
+   - Authorized JavaScript origins: `http://localhost:3000` (development)
+   - Authorized redirect URIs: `http://localhost:3000/auth/google/callback`
+5. **Copy the Client ID and Client Secret** to your environment variables
+
+#### Facebook OAuth Setup
+
+1. **Go to Facebook Developers**: https://developers.facebook.com/
+2. **Create a new app** or select an existing one
+3. **Add Facebook Login product** to your app
+4. **Configure OAuth settings**:
+   - Valid OAuth Redirect URIs: `http://localhost:3000/auth/facebook/callback`
+   - Client OAuth Login: Yes
+   - Web OAuth Login: Yes
+5. **Copy the App ID and App Secret** to your environment variables
+
+#### OAuth Environment Variables
+
+```bash
+# Google OAuth (Required)
+GOOGLE_CLIENT_ID="123456789-abcdefghijklmnop.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="GOCSPX-your_google_client_secret_here"
+
+# Facebook OAuth (Required)
+FACEBOOK_CLIENT_ID="1234567890123456"
+FACEBOOK_CLIENT_SECRET="your_facebook_app_secret_here"
+
+# Optional OAuth Configuration
+GOOGLE_REDIRECT_URI="http://localhost:3000/auth/google/callback"
+FACEBOOK_REDIRECT_URI="http://localhost:3000/auth/facebook/callback"
+GOOGLE_SCOPES="openid,profile,email"
+FACEBOOK_SCOPES="email,public_profile"
+```
+
 ### Required Variables
 
 ```bash
@@ -267,6 +311,14 @@ ELASTICSEARCH_URL="http://localhost:9201"
 API_PREFIX=/api
 API_VERSION=v1
 CORS_ORIGIN=*
+
+# OAuth Redirect URLs (optional - defaults provided)
+GOOGLE_REDIRECT_URI="http://localhost:3000/auth/google/callback"
+FACEBOOK_REDIRECT_URI="http://localhost:3000/auth/facebook/callback"
+
+# OAuth Scopes (optional - defaults provided)
+GOOGLE_SCOPES="openid,profile,email"
+FACEBOOK_SCOPES="email,public_profile"
 
 # Logging
 LOG_LEVEL=info
