@@ -40,9 +40,7 @@ class ElasticsearchConnection {
       this.client = new Client(clientConfig);
 
       // Test the connection with a reasonable timeout
-      await this.client.ping({}, {
-        requestTimeout: 10000,
-      });
+      await this.client.ping();
       this.isConnected = true;
 
       logger.info('Elasticsearch connection established successfully', {
@@ -83,9 +81,7 @@ class ElasticsearchConnection {
       
       // Race between ping and timeout
       await Promise.race([
-        this.client.ping({}, {
-          requestTimeout: timeoutMs,
-        }),
+        this.client.ping(),
         timeoutPromise
       ]);
       
