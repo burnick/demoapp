@@ -45,7 +45,10 @@ export class OpenApiService {
       
       const config = getOpenAPIConfig();
       
-      const document = generateOpenApiDocument(router, {
+      // Create a flattened router for OpenAPI generation
+      const flattenedRouter = this.createFlattenedRouter(router);
+      
+      const document = generateOpenApiDocument(flattenedRouter, {
         title: config.title,
         version: config.version,
         description: config.description,
@@ -157,6 +160,62 @@ export class OpenApiService {
       
       // Return a minimal document on error
       return this.getMinimalDocument();
+    }
+  }
+
+  /**
+   * Create a flattened router for OpenAPI generation
+   * This extracts all procedures from nested routers and creates a flat structure
+   */
+  private createFlattenedRouter(router: AppRouter): any {
+    const { router: trpcRouter } = require('../trpc/router');
+    const flatRoutes: Record<string, any> = {};
+    
+    try {
+      // Extract procedures from the router
+      const routerDef = router._def;
+      
+      if (routerDef && routerDef.record) {
+        this.extractProceduresFromRecord(routerDef.record, flatRoutes, '');
+      }
+      
+      Logger.debug('Created flattened router for OpenAPI', {
+        procedureCount: Object.keys(flatRoutes).length,
+        procedures: Object.keys(flatRoutes),
+      });
+      
+      return trpcRouter(flatRoutes);
+    } catch (error) {
+      Logger.error('Failed to create flattened router', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      
+      // Return empty router on error
+      return trpcRouter({});
+    }
+  }
+
+  /**
+   * Recursively extract procedures from router record
+   */
+  private extractProceduresFromRecord(record: any, flatRoutes: Record<string, any>, prefix: string): void {
+    for (const [key, value] of Object.entries(record)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      
+      if (value && typeof value === 'object') {
+        // Check if this is a procedure (has _def with type)
+        if (value._def && (value._def.type === 'query' || value._def.type === 'mutation')) {
+          flatRoutes[fullKey] = value;
+        }
+        // Check if this is a nested router
+        else if (value._def && value._def.record) {
+          this.extractProceduresFromRecord(value._def.record, flatRoutes, fullKey);
+        }
+        // Check if this has procedures directly
+        else if (value._def) {
+          flatRoutes[fullKey] = value;
+        }
+      }
     }
   }
 
