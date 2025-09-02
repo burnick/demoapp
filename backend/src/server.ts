@@ -19,6 +19,12 @@ import {
   clearOpenApiCache 
 } from './middleware/swagger';
 import { logOpenAPIConfig } from './utils/openapi';
+import { 
+  versioningMiddleware, 
+  versionValidationMiddleware, 
+  initializeVersionRegistry,
+  getVersionInfo 
+} from './middleware/versioning';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +42,11 @@ app.use(cors({
 }));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
+
+// Initialize version registry and add versioning middleware
+initializeVersionRegistry();
+app.use(versioningMiddleware());
+app.use(versionValidationMiddleware());
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -160,6 +171,25 @@ app.get('/api/routes', (req, res) => {
       error: {
         code: 'ROUTE_INFO_ERROR',
         message: 'Failed to get route information',
+      },
+    });
+  }
+});
+
+// Version info endpoint
+app.get('/api/versions', (req, res) => {
+  try {
+    const versionInfo = getVersionInfo();
+    res.json({
+      success: true,
+      data: versionInfo,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'VERSION_INFO_ERROR',
+        message: 'Failed to get version information',
       },
     });
   }

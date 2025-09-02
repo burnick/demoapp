@@ -1,6 +1,6 @@
 // Global test setup
-const dotenv = require('dotenv');
-const { PrismaClient } = require('@prisma/client');
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
