@@ -106,6 +106,39 @@ app.get('/api/docs', (req, res) => {
   res.redirect(301, '/api/docs/');
 });
 
+// Swagger UI debug endpoint
+app.get('/api/docs/debug', (req, res) => {
+  try {
+    const { getCurrentRouter } = require('./trpc/server');
+    const { openApiService } = require('./services/openApiService');
+    
+    const router = getCurrentRouter();
+    const document = openApiService.generateDocument(router);
+    
+    res.json({
+      success: true,
+      data: {
+        swaggerUIStatus: 'enabled',
+        documentGenerated: true,
+        pathsCount: Object.keys(document.paths || {}).length,
+        paths: Object.keys(document.paths || {}),
+        info: document.info,
+        servers: document.servers,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SWAGGER_DEBUG_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // Redirect /docs to /api/docs for convenience
 app.get('/docs', (req, res) => {
   res.redirect('/api/docs');
