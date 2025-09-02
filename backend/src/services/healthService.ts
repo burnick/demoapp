@@ -1,11 +1,11 @@
-import { checkDatabaseHealth } from '../prisma/client';
-import { cacheService } from './cacheService';
-import { searchService } from './searchService';
-import { logger } from '../utils/logger';
-import { config } from '../utils/config';
+import { checkDatabaseHealth } from "../prisma/client";
+import { cacheService } from "./cacheService";
+import { searchService } from "./searchService";
+import { logger } from "../utils/logger";
+import { config } from "../utils/config";
 
 export interface HealthStatus {
-  status: 'healthy' | 'unhealthy' | 'degraded';
+  status: "healthy" | "unhealthy" | "degraded";
   timestamp: string;
   service: string;
   version: string;
@@ -21,14 +21,14 @@ export interface DetailedHealthStatus extends HealthStatus {
 }
 
 export interface DependencyStatus {
-  status: 'healthy' | 'unhealthy';
+  status: "healthy" | "unhealthy";
   responseTime?: number;
   error?: string;
   details?: any;
 }
 
 export interface ReadinessStatus {
-  status: 'ready' | 'not_ready';
+  status: "ready" | "not_ready";
   timestamp: string;
   checks: {
     database: boolean;
@@ -37,8 +37,8 @@ export interface ReadinessStatus {
 
 class HealthService {
   private startTime: number;
-  private readonly serviceName = 'backend-api';
-  private readonly serviceVersion = '1.0.0';
+  private readonly serviceName = "backend-api";
+  private readonly serviceVersion = "1.0.0";
 
   constructor() {
     this.startTime = Date.now();
@@ -49,7 +49,7 @@ class HealthService {
    */
   getBasicHealth(): HealthStatus {
     return {
-      status: 'healthy',
+      status: "healthy",
       timestamp: new Date().toISOString(),
       service: this.serviceName,
       version: this.serviceVersion,
@@ -66,7 +66,10 @@ class HealthService {
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Database health check timeout')), timeout);
+        setTimeout(
+          () => reject(new Error("Database health check timeout")),
+          timeout
+        );
       });
 
       const healthPromise = checkDatabaseHealth();
@@ -74,17 +77,17 @@ class HealthService {
       const responseTime = Date.now() - startTime;
 
       return {
-        status: isHealthy ? 'healthy' : 'unhealthy',
+        status: isHealthy ? "healthy" : "unhealthy",
         responseTime,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      logger.error('Database health check failed', { error, responseTime });
-      
+      logger.error("Database health check failed", { error, responseTime });
+
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         responseTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -98,7 +101,10 @@ class HealthService {
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Redis health check timeout')), timeout);
+        setTimeout(
+          () => reject(new Error("Redis health check timeout")),
+          timeout
+        );
       });
 
       const healthPromise = cacheService.isHealthy();
@@ -106,17 +112,17 @@ class HealthService {
       const responseTime = Date.now() - startTime;
 
       return {
-        status: isHealthy ? 'healthy' : 'unhealthy',
+        status: isHealthy ? "healthy" : "unhealthy",
         responseTime,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      logger.error('Redis health check failed', { error, responseTime });
-      
+      logger.error("Redis health check failed", { error, responseTime });
+
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         responseTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -132,32 +138,38 @@ class HealthService {
 
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Elasticsearch health check timeout')), timeout);
+        setTimeout(
+          () => reject(new Error("Elasticsearch health check timeout")),
+          timeout
+        );
       });
 
       // Pass the timeout to the search service with a small buffer
-      const healthPromise = searchService.isHealthy(Math.max(timeout - 2000, 10000)); // Give 2 second buffer, minimum 10s
+      const healthPromise = searchService.isHealthy(
+        Math.max(timeout - 2000, 10000)
+      ); // Give 2 second buffer, minimum 10s
       const isHealthy = await Promise.race([healthPromise, timeoutPromise]);
       const responseTime = Date.now() - startTime;
 
       return {
-        status: isHealthy ? 'healthy' : 'unhealthy',
+        status: isHealthy ? "healthy" : "unhealthy",
         responseTime,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      logger.error('Elasticsearch health check failed', { 
-        error: error instanceof Error ? error.message : 'Unknown error',
+      logger.error("Elasticsearch health check failed", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
         responseTime,
         timeout,
         elasticsearchUrl: config.ELASTICSEARCH_URL,
-        configuredTimeout: config.ELASTICSEARCH_HEALTH_TIMEOUT
+        configuredTimeout: config.ELASTICSEARCH_HEALTH_TIMEOUT,
       });
-      
+
       return {
-        status: 'unhealthy',
+        status: "unhealthy",
         responseTime,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -178,21 +190,21 @@ class HealthService {
 
       // Determine overall health status
       // Database is critical, cache and search are optional
-      const criticalHealthy = databaseStatus.status === 'healthy';
-      const allHealthy = 
-        databaseStatus.status === 'healthy' &&
-        cacheStatus.status === 'healthy' &&
-        searchStatus.status === 'healthy';
+      const criticalHealthy = databaseStatus.status === "healthy";
+      const allHealthy =
+        databaseStatus.status === "healthy" &&
+        cacheStatus.status === "healthy" &&
+        searchStatus.status === "healthy";
 
-      let overallStatus: 'healthy' | 'unhealthy' | 'degraded';
+      let overallStatus: "healthy" | "unhealthy" | "degraded";
       if (allHealthy) {
-        overallStatus = 'healthy';
+        overallStatus = "healthy";
       } else if (criticalHealthy) {
         // If database is healthy but cache/search are not, we're degraded but operational
-        overallStatus = 'degraded';
+        overallStatus = "degraded";
       } else {
         // If database is unhealthy, we're unhealthy
-        overallStatus = 'unhealthy';
+        overallStatus = "unhealthy";
       }
 
       return {
@@ -205,15 +217,15 @@ class HealthService {
         },
       };
     } catch (error) {
-      logger.error('Health check failed', { error });
-      
+      logger.error("Health check failed", { error });
+
       return {
         ...basicHealth,
-        status: 'unhealthy',
+        status: "unhealthy",
         dependencies: {
-          database: { status: 'unhealthy', error: 'Health check failed' },
-          cache: { status: 'unhealthy', error: 'Health check failed' },
-          search: { status: 'unhealthy', error: 'Health check failed' },
+          database: { status: "unhealthy", error: "Health check failed" },
+          cache: { status: "unhealthy", error: "Health check failed" },
+          search: { status: "unhealthy", error: "Health check failed" },
         },
       };
     }
@@ -225,20 +237,20 @@ class HealthService {
   async getReadinessStatus(): Promise<ReadinessStatus> {
     try {
       const databaseStatus = await this.checkDatabaseWithTimeout();
-      const isDatabaseReady = databaseStatus.status === 'healthy';
+      const isDatabaseReady = databaseStatus.status === "healthy";
 
       return {
-        status: isDatabaseReady ? 'ready' : 'not_ready',
+        status: isDatabaseReady ? "ready" : "not_ready",
         timestamp: new Date().toISOString(),
         checks: {
           database: isDatabaseReady,
         },
       };
     } catch (error) {
-      logger.error('Readiness check failed', { error });
-      
+      logger.error("Readiness check failed", { error });
+
       return {
-        status: 'not_ready',
+        status: "not_ready",
         timestamp: new Date().toISOString(),
         checks: {
           database: false,
