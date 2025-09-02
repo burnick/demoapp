@@ -237,7 +237,7 @@ export const getDataWithConditionalCache = protectedProcedure
     return {
       dataType: input.dataType,
       data: `Data for ${input.dataType}`,
-      userRole: ctx.user?.role,
+      userRole: 'user', // ctx.user?.role - role property not available in current AuthUser type
       timestamp: new Date(),
     };
   });

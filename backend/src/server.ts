@@ -3,12 +3,22 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { createTRPCMiddleware, updateRouter } from './trpc/server';
 import { connectDatabase } from './prisma/client';
 import { Logger } from './utils/logger';
 import { config, getServerConfig, getCORSConfig } from './utils/config';
 import { initializeRoutes, getRouteInfo } from './routes';
 import { cacheService } from './services/cacheService';
+import { searchService } from './services/searchService';
+import { SearchIndexer } from './utils/searchIndexer';
+import { 
+  createSwaggerMiddleware, 
+  serveOpenApiJson, 
+  serveOpenApiStats, 
+  clearOpenApiCache 
+} from './middleware/swagger';
+import { logOpenAPIConfig } from './utils/openapi';
 
 // Load environment variables
 dotenv.config();
@@ -54,6 +64,20 @@ app.get('/health', (req, res) => {
     service: 'backend-api',
     version: '1.0.0'
   });
+});
+
+// OpenAPI documentation endpoints
+app.get('/api/docs/openapi.json', serveOpenApiJson);
+app.get('/api/docs/stats', serveOpenApiStats);
+app.delete('/api/docs/cache', clearOpenApiCache);
+
+// Swagger UI documentation
+app.use('/api/docs', swaggerUi.serve);
+app.get('/api/docs', ...createSwaggerMiddleware());
+
+// Redirect /docs to /api/docs for convenience
+app.get('/docs', (req, res) => {
+  res.redirect('/api/docs');
 });
 
 // Initialize file-based routing and create tRPC middleware
@@ -134,6 +158,20 @@ const startServer = async () => {
     await cacheService.initialize();
     Logger.info('Cache service initialized successfully');
     
+    // Initialize search service
+    Logger.info('Initializing search service');
+    try {
+      await searchService.initialize();
+      Logger.info('Search service initialized successfully');
+      
+      // Initialize search index with existing data if needed
+      await SearchIndexer.initializeSearchIndex();
+    } catch (error) {
+      Logger.warn('Search service initialization failed, continuing without search functionality', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+    
     // Initialize file-based routing system
     Logger.info('Initializing file-based routing system');
     const fileBasedRouter = await initializeRoutes();
@@ -143,6 +181,9 @@ const startServer = async () => {
     
     // Create tRPC middleware with the updated router
     trpcMiddleware = createTRPCMiddleware(updatedRouter);
+    
+    // Log OpenAPI configuration
+    logOpenAPIConfig();
     
     Logger.info('File-based routing system initialized successfully');
     
@@ -157,6 +198,8 @@ const startServer = async () => {
           health: `http://localhost:${PORT}/health`,
           trpc: `http://localhost:${PORT}/trpc`,
           routes: `http://localhost:${PORT}/api/routes`,
+          docs: `http://localhost:${PORT}/api/docs`,
+          openapi: `http://localhost:${PORT}/api/docs/openapi.json`,
         },
         routing: {
           versions: routeInfo.versions,
@@ -183,7 +226,16 @@ const gracefulShutdown = async (signal: string) => {
     await redisConnection.disconnect();
     Logger.info('Redis connection closed');
   } catch (error) {
-    Logger.error('Error closing Redis connection:', error);
+    Logger.error('Error closing Redis connection:', { error });
+  }
+  
+  try {
+    // Close Elasticsearch connection
+    const { elasticsearchConnection } = await import('./utils/elasticsearch');
+    await elasticsearchConnection.disconnect();
+    Logger.info('Elasticsearch connection closed');
+  } catch (error) {
+    Logger.error('Error closing Elasticsearch connection:', { error });
   }
   
   process.exit(0);

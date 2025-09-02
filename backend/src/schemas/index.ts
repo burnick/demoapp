@@ -2,6 +2,7 @@
 export * from './common';
 export * from './user';
 export * from './auth';
+export * from './search';
 
 import { z } from 'zod';
 import { ApiResponseSchema, PaginatedResponseSchema, ErrorResponseSchema } from './common';

@@ -1,0 +1,105 @@
+import { Client } from '@elastic/elasticsearch';
+import { getElasticsearchConfig } from './config';
+import { logger } from './logger';
+
+class ElasticsearchConnection {
+  private client: Client | null = null;
+  private isConnected = false;
+
+  /**
+   * Initialize Elasticsearch client
+   */
+  async connect(): Promise<Client> {
+    if (this.client && this.isConnected) {
+      return this.client;
+    }
+
+    try {
+      const config = getElasticsearchConfig();
+      
+      if (!config.url) {
+        throw new Error('Elasticsearch URL not configured');
+      }
+
+      const clientConfig: any = {
+        node: config.url,
+      };
+
+      // Add authentication if provided
+      if (config.username && config.password) {
+        clientConfig.auth = {
+          username: config.username,
+          password: config.password,
+        };
+      }
+
+      this.client = new Client(clientConfig);
+
+      // Test the connection
+      await this.client.ping();
+      this.isConnected = true;
+
+      logger.info('Elasticsearch connection established successfully', {
+        node: config.url,
+      });
+
+      return this.client;
+    } catch (error) {
+      this.isConnected = false;
+      logger.error('Failed to connect to Elasticsearch:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the Elasticsearch client
+   */
+  getClient(): Client {
+    if (!this.client || !this.isConnected) {
+      throw new Error('Elasticsearch client not initialized. Call connect() first.');
+    }
+    return this.client;
+  }
+
+  /**
+   * Check if Elasticsearch is connected and healthy
+   */
+  async ping(): Promise<boolean> {
+    try {
+      if (!this.client) {
+        return false;
+      }
+      
+      await this.client.ping();
+      return true;
+    } catch (error) {
+      logger.error('Elasticsearch ping failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Disconnect from Elasticsearch
+   */
+  async disconnect(): Promise<void> {
+    if (this.client) {
+      try {
+        await this.client.close();
+        this.isConnected = false;
+        logger.info('Elasticsearch connection closed');
+      } catch (error) {
+        logger.error('Error closing Elasticsearch connection:', error);
+      }
+    }
+  }
+
+  /**
+   * Get connection status
+   */
+  isHealthy(): boolean {
+    return this.isConnected;
+  }
+}
+
+// Create singleton instance
+export const elasticsearchConnection = new ElasticsearchConnection();

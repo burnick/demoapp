@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { router as trpcRouter, baseProcedure, protectedProcedure } from '../../trpc/router';
+import { createOpenApiMeta } from '../../utils/openapi';
 import { AuthController } from '../../controllers/authController';
 import { 
   LoginSchema, 
@@ -17,6 +18,13 @@ import { ApiResponseSchema } from '../../schemas/common';
 export const authRouter = trpcRouter({
   // User registration
   register: baseProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/register',
+      summary: 'Register new user',
+      description: 'Create a new user account and return authentication tokens',
+      tags: ['Authentication'],
+    }))
     .input(RegisterSchema)
     .output(ApiResponseSchema(z.object({
       user: z.object({
@@ -53,6 +61,13 @@ export const authRouter = trpcRouter({
 
   // User login
   login: baseProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/login',
+      summary: 'User login',
+      description: 'Authenticate user and return access tokens',
+      tags: ['Authentication'],
+    }))
     .input(LoginSchema)
     .output(ApiResponseSchema(z.object({
       user: z.object({
@@ -89,6 +104,13 @@ export const authRouter = trpcRouter({
 
   // Refresh access token
   refreshToken: baseProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/refresh',
+      summary: 'Refresh access token',
+      description: 'Refresh expired access token using refresh token',
+      tags: ['Authentication'],
+    }))
     .input(RefreshTokenSchema)
     .output(ApiResponseSchema(z.object({
       accessToken: z.string(),
@@ -111,6 +133,14 @@ export const authRouter = trpcRouter({
 
   // User logout (protected)
   logout: protectedProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/logout',
+      summary: 'User logout',
+      description: 'Logout user and invalidate tokens (requires authentication)',
+      tags: ['Authentication'],
+      protect: true,
+    }))
     .output(ApiResponseSchema(z.object({
       success: z.boolean(),
       message: z.string(),
@@ -130,6 +160,14 @@ export const authRouter = trpcRouter({
 
   // Change password (protected)
   changePassword: protectedProcedure
+    .meta(createOpenApiMeta({
+      method: 'PUT',
+      path: '/v1/auth/password',
+      summary: 'Change password',
+      description: 'Change user password (requires authentication)',
+      tags: ['Authentication'],
+      protect: true,
+    }))
     .input(ChangePasswordSchema)
     .output(ApiResponseSchema(z.object({
       success: z.boolean(),
@@ -150,6 +188,13 @@ export const authRouter = trpcRouter({
 
   // Forgot password
   forgotPassword: baseProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/forgot-password',
+      summary: 'Forgot password',
+      description: 'Request password reset email',
+      tags: ['Authentication'],
+    }))
     .input(ForgotPasswordSchema)
     .output(ApiResponseSchema(z.object({
       success: z.boolean(),
@@ -170,6 +215,13 @@ export const authRouter = trpcRouter({
 
   // Reset password
   resetPassword: baseProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/reset-password',
+      summary: 'Reset password',
+      description: 'Reset password using reset token',
+      tags: ['Authentication'],
+    }))
     .input(ResetPasswordSchema)
     .output(ApiResponseSchema(z.object({
       success: z.boolean(),
@@ -190,6 +242,13 @@ export const authRouter = trpcRouter({
 
   // Verify email token
   verifyEmail: baseProcedure
+    .meta(createOpenApiMeta({
+      method: 'POST',
+      path: '/v1/auth/verify-email',
+      summary: 'Verify email',
+      description: 'Verify user email address using verification token',
+      tags: ['Authentication'],
+    }))
     .input(z.object({
       token: z.string().min(1, 'Token is required'),
     }))
@@ -212,6 +271,14 @@ export const authRouter = trpcRouter({
 
   // Get current session info (protected)
   getSession: protectedProcedure
+    .meta(createOpenApiMeta({
+      method: 'GET',
+      path: '/v1/auth/session',
+      summary: 'Get session info',
+      description: 'Get current user session information (requires authentication)',
+      tags: ['Authentication'],
+      protect: true,
+    }))
     .output(ApiResponseSchema(z.object({
       user: z.object({
         id: z.string(),

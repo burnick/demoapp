@@ -1,8 +1,10 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { ZodError } from 'zod';
+import { OpenApiMeta } from 'trpc-openapi';
 import { Context } from './context';
 import { Logger } from '../utils/logger';
 import { ErrorHandler, ApiError } from '../utils/errors';
+import { createOpenApiMeta } from '../utils/openapi';
 
 /**
  * Initialize tRPC with context
@@ -58,6 +60,11 @@ export const router = t.router;
  * Public procedure - no authentication required
  */
 export const publicProcedure = t.procedure;
+
+/**
+ * Public procedure with OpenAPI meta support
+ */
+export const openApiProcedure = t.procedure;
 
 /**
  * Create reusable middleware
@@ -234,9 +241,22 @@ export const baseProcedure = publicProcedure
   .use(errorHandlingMiddleware);
 
 /**
+ * OpenAPI-enabled base procedure
+ */
+export const openApiBaseProcedure = openApiProcedure
+  .use(timingMiddleware)
+  .use(loggingMiddleware)
+  .use(errorHandlingMiddleware);
+
+/**
  * Protected procedure - requires authentication
  */
 export const protectedProcedure = baseProcedure.use(authMiddleware);
+
+/**
+ * OpenAPI-enabled protected procedure
+ */
+export const openApiProtectedProcedure = openApiBaseProcedure.use(authMiddleware);
 
 /**
  * Create the main app router
@@ -245,14 +265,22 @@ export const protectedProcedure = baseProcedure.use(authMiddleware);
 export const createAppRouter = (fileBasedRouter?: any) => {
   const baseRoutes = {
     // Health check procedure
-    health: baseProcedure.query(async ({ ctx }) => {
-      return {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        requestId: ctx.requestId,
-        service: 'backend-api',
-      };
-    }),
+    health: baseProcedure
+      .meta(createOpenApiMeta({
+        method: 'GET',
+        path: '/health',
+        summary: 'Health check',
+        description: 'Check the health status of the API service',
+        tags: ['Health'],
+      }))
+      .query(async ({ ctx }) => {
+        return {
+          status: 'ok',
+          timestamp: new Date().toISOString(),
+          requestId: ctx.requestId,
+          service: 'backend-api',
+        };
+      }),
   };
 
   // If file-based router is provided, merge it with base routes

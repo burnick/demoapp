@@ -20,10 +20,6 @@ class RedisConnection {
         socket: {
           host: redisConfig.host,
           port: redisConfig.port,
-        },
-        password: redisConfig.password,
-        // Connection retry strategy
-        socket: {
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               logger.error('Redis connection failed after 10 retries');
@@ -32,6 +28,7 @@ class RedisConnection {
             return Math.min(retries * 100, 3000);
           },
         },
+        password: redisConfig.password,
       });
 
       // Set up event listeners

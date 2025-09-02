@@ -10,7 +10,20 @@ import {
   type UserResponse,
   type UserListResponse,
 } from '../schemas/user';
+import {
+  UserSearchQuerySchema,
+  UserSearchFiltersSchema,
+  SearchSuggestionsSchema,
+  SearchResponseSchema,
+  SearchSuggestionsResponseSchema,
+  type UserSearchQuery,
+  type UserSearchFilters,
+  type SearchSuggestions,
+  type SearchResponse,
+  type SearchSuggestionsResponse,
+} from '../schemas/search';
 import { UserService } from '../services/userService';
+import { searchService } from '../services/searchService';
 import { NotFoundError, ConflictError, ValidationError } from '../utils/errors';
 
 /**
@@ -236,5 +249,115 @@ export class UserController extends BaseController {
         updatedCount: result.count,
       };
     }, 'bulkUpdateUsers');
+  }
+
+  /**
+   * Search users with text query
+   * @param input - Search query parameters
+   * @returns Search results
+   */
+  async searchUsers(input: unknown): Promise<SearchResponse> {
+    const validatedInput = this.validateInput(input, UserSearchQuerySchema);
+    
+    this.logAction('searchUsers', undefined, {
+      query: validatedInput.q,
+      from: validatedInput.from,
+      size: validatedInput.size,
+    });
+
+    return this.handleAsync(async () => {
+      const result = await searchService.searchUsers(validatedInput.q, {
+        from: validatedInput.from,
+        size: validatedInput.size,
+        highlight: validatedInput.highlight,
+      });
+
+      // Transform the result to match our schema
+      const transformedResult = {
+        hits: result.hits.map(hit => ({
+          id: hit._id,
+          score: hit._score,
+          source: hit._source,
+          highlight: hit.highlight,
+        })),
+        total: result.total,
+        maxScore: result.maxScore,
+      };
+
+      return this.validateInput(transformedResult, SearchResponseSchema);
+    }, 'searchUsers');
+  }
+
+  /**
+   * Advanced search users with filters
+   * @param input - Advanced search filters
+   * @returns Search results
+   */
+  async advancedSearchUsers(input: unknown): Promise<SearchResponse> {
+    const validatedInput = this.validateInput(input, UserSearchFiltersSchema);
+    
+    this.logAction('advancedSearchUsers', undefined, {
+      filters: this.sanitizeData(validatedInput, ['page', 'limit']),
+    });
+
+    return this.handleAsync(async () => {
+      const filters: any = {};
+      
+      if (validatedInput.query) filters.query = validatedInput.query;
+      if (validatedInput.email) filters.email = validatedInput.email;
+      if (validatedInput.name) filters.name = validatedInput.name;
+      if (validatedInput.createdAfter) filters.createdAfter = new Date(validatedInput.createdAfter);
+      if (validatedInput.createdBefore) filters.createdBefore = new Date(validatedInput.createdBefore);
+
+      const from = ((validatedInput.page ?? 1) - 1) * (validatedInput.limit ?? 10);
+      const size = validatedInput.limit ?? 10;
+
+      const result = await searchService.advancedSearchUsers(filters, {
+        from,
+        size,
+        highlight: true,
+      });
+
+      // Transform the result to match our schema
+      const transformedResult = {
+        hits: result.hits.map(hit => ({
+          id: hit._id,
+          score: hit._score,
+          source: hit._source,
+          highlight: hit.highlight,
+        })),
+        total: result.total,
+        maxScore: result.maxScore,
+      };
+
+      return this.validateInput(transformedResult, SearchResponseSchema);
+    }, 'advancedSearchUsers');
+  }
+
+  /**
+   * Get user search suggestions
+   * @param input - Suggestion query parameters
+   * @returns Search suggestions
+   */
+  async getUserSuggestions(input: unknown): Promise<SearchSuggestionsResponse> {
+    const validatedInput = this.validateInput(input, SearchSuggestionsSchema);
+    
+    this.logAction('getUserSuggestions', undefined, {
+      query: validatedInput.q,
+      field: validatedInput.field,
+      size: validatedInput.size,
+    });
+
+    return this.handleAsync(async () => {
+      const suggestions = await searchService.suggestUsers(
+        validatedInput.q,
+        validatedInput.field,
+        validatedInput.size
+      );
+
+      const result = { suggestions };
+
+      return this.validateInput(result, SearchSuggestionsResponseSchema);
+    }, 'getUserSuggestions');
   }
 }

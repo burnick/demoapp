@@ -15,6 +15,7 @@ import {
   ValidationError 
 } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { searchService } from './searchService';
 
 export class UserService {
   /**
@@ -39,6 +40,11 @@ export class UserService {
           name: userData.name,
           password: '', // Password will be set by auth service
         }
+      });
+
+      // Index user in Elasticsearch (async, don't block the response)
+      searchService.indexUser(user).catch(error => {
+        logger.error('Failed to index user in search service:', error, { userId: user.id });
       });
 
       logger.info('User created successfully', { userId: user.id, email: user.email });
@@ -122,6 +128,11 @@ export class UserService {
         }
       });
 
+      // Update user in Elasticsearch (async, don't block the response)
+      searchService.updateUser(updatedUser).catch(error => {
+        logger.error('Failed to update user in search service:', error, { userId: id });
+      });
+
       logger.info('User updated successfully', { userId: id, updatedFields: Object.keys(updateData) });
       return updatedUser;
     } catch (error) {
@@ -144,6 +155,11 @@ export class UserService {
 
       await prisma.user.delete({
         where: { id }
+      });
+
+      // Delete user from Elasticsearch (async, don't block the response)
+      searchService.deleteUser(id).catch(error => {
+        logger.error('Failed to delete user from search service:', error, { userId: id });
       });
 
       logger.info('User deleted successfully', { userId: id });
@@ -257,6 +273,13 @@ export class UserService {
           where: { id: { in: data.userIds } }
         });
 
+        // Delete users from Elasticsearch (async, don't block the response)
+        Promise.all(data.userIds.map(userId => 
+          searchService.deleteUser(userId).catch(error => {
+            logger.error('Failed to delete user from search service:', error, { userId });
+          })
+        ));
+
         logger.info('Bulk delete completed', { deletedCount: result.count, userIds: data.userIds });
         return { count: result.count };
       });
@@ -314,6 +337,18 @@ export class UserService {
             ...(data.updates.name && { name: data.updates.name }),
           }
         });
+
+        // Update users in Elasticsearch (async, don't block the response)
+        // We need to fetch the updated users to get the full data for indexing
+        const updatedUsers = await tx.user.findMany({
+          where: { id: { in: data.userIds } }
+        });
+        
+        Promise.all(updatedUsers.map(user => 
+          searchService.updateUser(user).catch(error => {
+            logger.error('Failed to update user in search service:', error, { userId: user.id });
+          })
+        ));
 
         logger.info('Bulk update completed', { 
           updatedCount: result.count, 
