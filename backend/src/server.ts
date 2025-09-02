@@ -35,7 +35,8 @@ const corsConfig = getCORSConfig();
 const PORT = serverConfig.port;
 
 // Middleware
-app.use(helmet({
+// Configure Helmet with development-friendly settings
+const helmetConfig = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -47,8 +48,6 @@ app.use(helmet({
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'self'"],
-      // Don't upgrade insecure requests in development
-      ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
     },
   },
   // Disable HSTS in development to prevent HTTPS enforcement
@@ -57,7 +56,15 @@ app.use(helmet({
     includeSubDomains: true,
     preload: true
   } : false,
-}));
+};
+
+// Remove upgrade-insecure-requests in development
+if (process.env.NODE_ENV !== 'production') {
+  // Don't add upgrade-insecure-requests directive in development
+  delete helmetConfig.contentSecurityPolicy.directives.upgradeInsecureRequests;
+}
+
+app.use(helmet(helmetConfig));
 app.use(cors({
   origin: corsConfig.origin,
   credentials: true,
