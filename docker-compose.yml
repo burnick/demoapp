@@ -96,7 +96,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: production
+      
     networks:
       - app-network
     healthcheck:
