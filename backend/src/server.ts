@@ -35,36 +35,16 @@ const corsConfig = getCORSConfig();
 const PORT = serverConfig.port;
 
 // Middleware
-// Configure Helmet with development-friendly settings
-const helmetConfig = {
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Allow inline scripts for Swagger UI
-      imgSrc: ["'self'", "data:", "https:"],
-      fontSrc: ["'self'", "https:", "data:"],
-      connectSrc: ["'self'", "http://localhost:3000", "http://burnick.local:3000"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'self'"],
-    },
-  },
+// Configure Helmet - disable CSP in development to avoid HTTPS upgrade issues
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production',
   // Disable HSTS in development to prevent HTTPS enforcement
   hsts: process.env.NODE_ENV === 'production' ? {
     maxAge: 31536000,
     includeSubDomains: true,
     preload: true
   } : false,
-};
-
-// Remove upgrade-insecure-requests in development
-if (process.env.NODE_ENV !== 'production') {
-  // Don't add upgrade-insecure-requests directive in development
-  delete helmetConfig.contentSecurityPolicy.directives.upgradeInsecureRequests;
-}
-
-app.use(helmet(helmetConfig));
+}));
 app.use(cors({
   origin: corsConfig.origin,
   credentials: true,
