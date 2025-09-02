@@ -241,6 +241,15 @@ JWT_EXPIRES_IN=7d
 # Server
 PORT=3000
 NODE_ENV=development
+
+# OAuth Configuration (Required for third-party authentication)
+# Google OAuth - Get from https://console.developers.google.com/
+GOOGLE_CLIENT_ID="your_google_client_id_here"
+GOOGLE_CLIENT_SECRET="your_google_client_secret_here"
+
+# Facebook OAuth - Get from https://developers.facebook.com/
+FACEBOOK_CLIENT_ID="your_facebook_app_id_here"
+FACEBOOK_CLIENT_SECRET="your_facebook_app_secret_here"
 ```
 
 ### Optional Variables
