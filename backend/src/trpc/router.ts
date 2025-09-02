@@ -1,5 +1,5 @@
 import { initTRPC, TRPCError } from '@trpc/server';
-import { ZodError } from 'zod';
+import { ZodError, z } from 'zod';
 import { OpenApiMeta } from 'trpc-openapi';
 import { Context } from './context';
 import { Logger } from '../utils/logger';
@@ -272,6 +272,13 @@ export const createAppRouter = (fileBasedRouter?: any) => {
         summary: 'Health check',
         description: 'Check the health status of the API service',
         tags: ['Health'],
+      }))
+      .input(z.void())
+      .output(z.object({
+        status: z.string(),
+        timestamp: z.string(),
+        requestId: z.string(),
+        service: z.string(),
       }))
       .query(async ({ ctx }) => {
         return {

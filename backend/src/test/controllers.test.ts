@@ -1,5 +1,6 @@
 import { UserController, AuthController } from '../controllers';
 import { prisma } from '../prisma/client';
+import { TestAssertions, MockDataGenerator } from './testUtils';
 
 // Mock Prisma client
 jest.mock('../prisma/client', () => ({

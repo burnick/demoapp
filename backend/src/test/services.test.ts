@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, jest } from '@jest/globals';
 import { PrismaClient } from '@prisma/client';
+import { TestDataFactory, TestAssertions, MockDataGenerator } from './testUtils';
 
 // Mock bcrypt
 jest.mock('bcryptjs', () => ({
