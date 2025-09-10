@@ -1,3 +1,11 @@
 {
-    "kiroAgent.configureMCP": "Disabled"
+    "kiroAgent.configureMCP": "Disabled",
+    "editor.formatOnSave": true,
+    "[javascript]": {
+      "editor.maxTokenizationLineLength": 2500,
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
 }
