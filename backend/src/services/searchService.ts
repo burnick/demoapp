@@ -1,12 +1,12 @@
-import { Client } from '@elastic/elasticsearch';
-import { elasticsearchConnection } from '../utils/elasticsearch';
-import { logger } from '../utils/logger';
-import { User } from '@prisma/client';
+import { Client } from "@elastic/elasticsearch";
+import { elasticsearchConnection } from "../utils/elasticsearch";
+import { logger } from "../utils/logger";
+import { User } from "@prisma/client";
 
 export interface SearchOptions {
   from?: number | undefined;
   size?: number | undefined;
-  sort?: Array<{ [key: string]: { order: 'asc' | 'desc' } }> | undefined;
+  sort?: Array<{ [key: string]: { order: "asc" | "desc" } }> | undefined;
   highlight?: boolean | undefined;
 }
 
@@ -19,7 +19,7 @@ export interface SearchResult<T> {
   }>;
   total: {
     value: number;
-    relation: 'eq' | 'gte';
+    relation: "eq" | "gte";
   };
   maxScore: number | null | undefined;
 }
@@ -34,23 +34,30 @@ export interface UserSearchDocument {
 
 class SearchService {
   private client: Client | null = null;
-  private readonly userIndex = 'users';
+  private readonly userIndex = "users";
 
   async initialize(): Promise<void> {
     try {
       this.client = await elasticsearchConnection.connect();
       await this.createUserIndex();
-      logger.info('Search service initialized successfully');
+      logger.info("Search service initialized successfully");
     } catch (error) {
-      logger.error('Failed to initialize search service:', error);
-      // Don't throw error to allow application to start without search
-      this.client = null;
+      logger.error("Failed to initialize search service:", error);
+      // Fail fast - don't hide search service initialization failures
+      // If search is required for the application, it should fail to start
+      throw new Error(
+        `Search service initialization failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
   private ensureClient(): Client {
     if (!this.client) {
-      throw new Error('Search service not initialized. Call initialize() first.');
+      throw new Error(
+        "Search service not initialized. Call initialize() first."
+      );
     }
     return this.client;
   }
@@ -61,7 +68,7 @@ class SearchService {
   private async createUserIndex(): Promise<void> {
     try {
       const client = this.ensureClient();
-      
+
       // Check if index already exists
       const indexExists = await client.indices.exists({
         index: this.userIndex,
@@ -82,14 +89,14 @@ class SearchService {
             analysis: {
               analyzer: {
                 email_analyzer: {
-                  type: 'custom',
-                  tokenizer: 'keyword',
-                  filter: ['lowercase'],
+                  type: "custom",
+                  tokenizer: "keyword",
+                  filter: ["lowercase"],
                 },
                 name_analyzer: {
-                  type: 'custom',
-                  tokenizer: 'standard',
-                  filter: ['lowercase', 'asciifolding'],
+                  type: "custom",
+                  tokenizer: "standard",
+                  filter: ["lowercase", "asciifolding"],
                 },
               },
             },
@@ -97,37 +104,37 @@ class SearchService {
           mappings: {
             properties: {
               id: {
-                type: 'keyword',
+                type: "keyword",
               },
               email: {
-                type: 'text',
-                analyzer: 'email_analyzer',
+                type: "text",
+                analyzer: "email_analyzer",
                 fields: {
                   keyword: {
-                    type: 'keyword',
+                    type: "keyword",
                   },
                   suggest: {
-                    type: 'completion',
+                    type: "completion",
                   },
                 },
               },
               name: {
-                type: 'text',
-                analyzer: 'name_analyzer',
+                type: "text",
+                analyzer: "name_analyzer",
                 fields: {
                   keyword: {
-                    type: 'keyword',
+                    type: "keyword",
                   },
                   suggest: {
-                    type: 'completion',
+                    type: "completion",
                   },
                 },
               },
               createdAt: {
-                type: 'date',
+                type: "date",
               },
               updatedAt: {
-                type: 'date',
+                type: "date",
               },
             },
           },
@@ -147,7 +154,7 @@ class SearchService {
   async indexUser(user: User): Promise<void> {
     try {
       const client = this.ensureClient();
-      
+
       const document: UserSearchDocument = {
         id: user.id,
         email: user.email,
@@ -160,12 +167,12 @@ class SearchService {
         index: this.userIndex,
         id: user.id,
         body: document,
-        refresh: 'wait_for',
+        refresh: "wait_for",
       });
 
-      logger.debug('User indexed successfully', { userId: user.id });
+      logger.debug("User indexed successfully", { userId: user.id });
     } catch (error) {
-      logger.error('Failed to index user:', error, { userId: user.id });
+      logger.error("Failed to index user:", error, { userId: user.id });
       throw error;
     }
   }
@@ -182,7 +189,7 @@ class SearchService {
       const client = this.ensureClient();
       const body: any[] = [];
 
-      users.forEach(user => {
+      users.forEach((user) => {
         // Add index operation
         body.push({
           index: {
@@ -203,22 +210,26 @@ class SearchService {
 
       const response = await client.bulk({
         body,
-        refresh: 'wait_for',
+        refresh: "wait_for",
       });
 
       if (response.errors) {
-        const errorItems = response.items?.filter(item => 
-          item.index?.error || item.create?.error || item.update?.error || item.delete?.error
+        const errorItems = response.items?.filter(
+          (item) =>
+            item.index?.error ||
+            item.create?.error ||
+            item.update?.error ||
+            item.delete?.error
         );
-        logger.error('Bulk indexing had errors:', errorItems);
+        logger.error("Bulk indexing had errors:", errorItems);
       }
 
-      logger.info('Bulk user indexing completed', { 
+      logger.info("Bulk user indexing completed", {
         total: users.length,
-        errors: response.errors ? 'yes' : 'no',
+        errors: response.errors ? "yes" : "no",
       });
     } catch (error) {
-      logger.error('Failed to bulk index users:', error);
+      logger.error("Failed to bulk index users:", error);
       throw error;
     }
   }
@@ -229,7 +240,7 @@ class SearchService {
   async updateUser(user: User): Promise<void> {
     try {
       const client = this.ensureClient();
-      
+
       const document: Partial<UserSearchDocument> = {
         email: user.email,
         name: user.name,
@@ -242,12 +253,14 @@ class SearchService {
         body: {
           doc: document,
         },
-        refresh: 'wait_for',
+        refresh: "wait_for",
       });
 
-      logger.debug('User document updated successfully', { userId: user.id });
+      logger.debug("User document updated successfully", { userId: user.id });
     } catch (error) {
-      logger.error('Failed to update user document:', error, { userId: user.id });
+      logger.error("Failed to update user document:", error, {
+        userId: user.id,
+      });
       throw error;
     }
   }
@@ -258,21 +271,21 @@ class SearchService {
   async deleteUser(userId: string): Promise<void> {
     try {
       const client = this.ensureClient();
-      
+
       await client.delete({
         index: this.userIndex,
         id: userId,
-        refresh: 'wait_for',
+        refresh: "wait_for",
       });
 
-      logger.debug('User document deleted successfully', { userId });
+      logger.debug("User document deleted successfully", { userId });
     } catch (error: any) {
       if (error.meta?.statusCode === 404) {
-        logger.debug('User document not found for deletion', { userId });
+        logger.debug("User document not found for deletion", { userId });
         return;
       }
-      
-      logger.error('Failed to delete user document:', error, { userId });
+
+      logger.error("Failed to delete user document:", error, { userId });
       throw error;
     }
   }
@@ -294,10 +307,10 @@ class SearchService {
         query: {
           multi_match: {
             query,
-            fields: ['name^2', 'email'],
-            type: 'best_fields',
-            fuzziness: 'AUTO',
-            operator: 'or',
+            fields: ["name^2", "email"],
+            type: "best_fields",
+            fuzziness: "AUTO",
+            operator: "or",
           },
         },
       };
@@ -307,8 +320,8 @@ class SearchService {
         searchBody.sort = sort;
       } else {
         searchBody.sort = [
-          { _score: { order: 'desc' } },
-          { createdAt: { order: 'desc' } },
+          { _score: { order: "desc" } },
+          { createdAt: { order: "desc" } },
         ];
       }
 
@@ -319,8 +332,8 @@ class SearchService {
             name: {},
             email: {},
           },
-          pre_tags: ['<mark>'],
-          post_tags: ['</mark>'],
+          pre_tags: ["<mark>"],
+          post_tags: ["</mark>"],
         };
       }
 
@@ -330,24 +343,26 @@ class SearchService {
       });
 
       return {
-        hits: response.hits.hits.map(hit => ({
+        hits: response.hits.hits.map((hit) => ({
           _id: hit._id!,
           _score: hit._score!,
           _source: hit._source as UserSearchDocument,
           highlight: hit.highlight,
         })),
         total: {
-          value: typeof response.hits.total === 'number' 
-            ? response.hits.total 
-            : response.hits.total!.value,
-          relation: typeof response.hits.total === 'number' 
-            ? 'eq' 
-            : response.hits.total!.relation,
+          value:
+            typeof response.hits.total === "number"
+              ? response.hits.total
+              : response.hits.total!.value,
+          relation:
+            typeof response.hits.total === "number"
+              ? "eq"
+              : response.hits.total!.relation,
         },
         maxScore: response.hits.max_score ?? null,
       };
     } catch (error) {
-      logger.error('Failed to search users:', error, { query, options });
+      logger.error("Failed to search users:", error, { query, options });
       throw error;
     }
   }
@@ -357,7 +372,7 @@ class SearchService {
    */
   async suggestUsers(
     query: string,
-    field: 'name' | 'email' = 'name',
+    field: "name" | "email" = "name",
     size: number = 5
   ): Promise<string[]> {
     try {
@@ -379,9 +394,11 @@ class SearchService {
       });
 
       const suggestions = response.suggest?.user_suggest?.[0]?.options || [];
-      return Array.isArray(suggestions) ? suggestions.map((option: any) => option.text) : [];
+      return Array.isArray(suggestions)
+        ? suggestions.map((option: any) => option.text)
+        : [];
     } catch (error) {
-      logger.error('Failed to get user suggestions:', error, { query, field });
+      logger.error("Failed to get user suggestions:", error, { query, field });
       throw error;
     }
   }
@@ -389,13 +406,16 @@ class SearchService {
   /**
    * Advanced search with filters
    */
-  async advancedSearchUsers(filters: {
-    query?: string;
-    email?: string;
-    name?: string;
-    createdAfter?: Date;
-    createdBefore?: Date;
-  }, options: SearchOptions = {}): Promise<SearchResult<UserSearchDocument>> {
+  async advancedSearchUsers(
+    filters: {
+      query?: string;
+      email?: string;
+      name?: string;
+      createdAfter?: Date;
+      createdBefore?: Date;
+    },
+    options: SearchOptions = {}
+  ): Promise<SearchResult<UserSearchDocument>> {
     try {
       const client = this.ensureClient();
       const { from = 0, size = 10, sort, highlight = true } = options;
@@ -408,9 +428,9 @@ class SearchService {
         must.push({
           multi_match: {
             query: filters.query,
-            fields: ['name^2', 'email'],
-            type: 'best_fields',
-            fuzziness: 'AUTO',
+            fields: ["name^2", "email"],
+            type: "best_fields",
+            fuzziness: "AUTO",
           },
         });
       }
@@ -419,7 +439,7 @@ class SearchService {
       if (filters.email) {
         filter.push({
           term: {
-            'email.keyword': filters.email,
+            "email.keyword": filters.email,
           },
         });
       }
@@ -430,7 +450,7 @@ class SearchService {
           match: {
             name: {
               query: filters.name,
-              operator: 'and',
+              operator: "and",
             },
           },
         });
@@ -468,8 +488,8 @@ class SearchService {
         searchBody.sort = sort;
       } else {
         searchBody.sort = [
-          ...(filters.query ? [{ _score: { order: 'desc' } }] : []),
-          { createdAt: { order: 'desc' } },
+          ...(filters.query ? [{ _score: { order: "desc" } }] : []),
+          { createdAt: { order: "desc" } },
         ];
       }
 
@@ -480,8 +500,8 @@ class SearchService {
             name: {},
             email: {},
           },
-          pre_tags: ['<mark>'],
-          post_tags: ['</mark>'],
+          pre_tags: ["<mark>"],
+          post_tags: ["</mark>"],
         };
       }
 
@@ -491,24 +511,29 @@ class SearchService {
       });
 
       return {
-        hits: response.hits.hits.map(hit => ({
+        hits: response.hits.hits.map((hit) => ({
           _id: hit._id!,
           _score: hit._score!,
           _source: hit._source as UserSearchDocument,
           highlight: hit.highlight,
         })),
         total: {
-          value: typeof response.hits.total === 'number' 
-            ? response.hits.total 
-            : response.hits.total!.value,
-          relation: typeof response.hits.total === 'number' 
-            ? 'eq' 
-            : response.hits.total!.relation,
+          value:
+            typeof response.hits.total === "number"
+              ? response.hits.total
+              : response.hits.total!.value,
+          relation:
+            typeof response.hits.total === "number"
+              ? "eq"
+              : response.hits.total!.relation,
         },
         maxScore: response.hits.max_score ?? null,
       };
     } catch (error) {
-      logger.error('Failed to perform advanced search:', error, { filters, options });
+      logger.error("Failed to perform advanced search:", error, {
+        filters,
+        options,
+      });
       throw error;
     }
   }
@@ -519,14 +544,14 @@ class SearchService {
   async getIndexStats(): Promise<any> {
     try {
       const client = this.ensureClient();
-      
+
       const response = await client.indices.stats({
         index: this.userIndex,
       });
 
       return response.indices?.[this.userIndex];
     } catch (error) {
-      logger.error('Failed to get index stats:', error);
+      logger.error("Failed to get index stats:", error);
       throw error;
     }
   }
@@ -543,59 +568,65 @@ class SearchService {
    */
   async isHealthy(timeoutMs: number = 5000): Promise<boolean> {
     const startTime = Date.now();
-    logger.debug('Starting Elasticsearch health check', { timeoutMs });
-    
+    logger.debug("Starting Elasticsearch health check", { timeoutMs });
+
     try {
       // Use a simple approach - try to ping Elasticsearch with proper timeout handling
-      const { getElasticsearchConfig } = await import('../utils/config');
+      const { getElasticsearchConfig } = await import("../utils/config");
       const config = getElasticsearchConfig();
-      
+
       if (!config.url) {
-        logger.debug('Elasticsearch URL not configured, considering service as unavailable');
+        logger.debug(
+          "Elasticsearch URL not configured, considering service as unavailable"
+        );
         return false;
       }
 
       // Create a timeout promise that resolves to false (unhealthy)
       const timeoutPromise = new Promise<boolean>((resolve) => {
         setTimeout(() => {
-          logger.debug('Elasticsearch health check timed out', { timeoutMs });
+          logger.debug("Elasticsearch health check timed out", { timeoutMs });
           resolve(false);
         }, timeoutMs);
       });
 
       // Try to ping using the elasticsearch connection with a shorter timeout
-      const pingPromise = elasticsearchConnection.ping(timeoutMs - 100)
-        .then(result => {
-          logger.debug('Elasticsearch ping result', { result, url: config.url });
+      const pingPromise = elasticsearchConnection
+        .ping(timeoutMs - 100)
+        .then((result) => {
+          logger.debug("Elasticsearch ping result", {
+            result,
+            url: config.url,
+          });
           return result;
         })
-        .catch(error => {
-          logger.debug('Elasticsearch ping failed', { 
-            error: error.message, 
+        .catch((error) => {
+          logger.debug("Elasticsearch ping failed", {
+            error: error.message,
             url: config.url,
             errorCode: error.code,
-            errorType: error.constructor.name
+            errorType: error.constructor.name,
           });
           return false;
         });
 
       const result = await Promise.race([pingPromise, timeoutPromise]);
       const responseTime = Date.now() - startTime;
-      
-      logger.debug('Elasticsearch health check completed', { 
-        result, 
-        responseTime, 
+
+      logger.debug("Elasticsearch health check completed", {
+        result,
+        responseTime,
         timeoutMs,
-        status: result ? 'healthy' : 'unhealthy'
+        status: result ? "healthy" : "unhealthy",
       });
-      
+
       return result;
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      logger.error('Search service health check failed:', { 
-        error: error instanceof Error ? error.message : 'Unknown error',
+      logger.error("Search service health check failed:", {
+        error: error instanceof Error ? error.message : "Unknown error",
         responseTime,
-        timeoutMs
+        timeoutMs,
       });
       return false;
     }
@@ -611,7 +642,7 @@ class SearchService {
         index: this.userIndex,
       });
     } catch (error) {
-      logger.error('Failed to refresh index:', error);
+      logger.error("Failed to refresh index:", error);
       throw error;
     }
   }

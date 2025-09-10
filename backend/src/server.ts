@@ -396,10 +396,15 @@ const startServer = async () => {
       // Initialize search index with existing data if needed
       await SearchIndexer.initializeSearchIndex();
     } catch (error) {
+      // Explicit decision: Allow application to start without search functionality
+      // This is a business decision that search is optional for basic operation
+      // The error is logged for visibility and monitoring can alert on this
       Logger.warn(
-        "Search service initialization failed, continuing without search functionality",
+        "Search service initialization failed - continuing with degraded functionality (search disabled)",
         {
           error: error instanceof Error ? error.message : "Unknown error",
+          impact: "Search functionality will be unavailable",
+          action: "Check Elasticsearch connectivity and configuration",
         }
       );
     }
